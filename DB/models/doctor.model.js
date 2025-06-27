@@ -8,15 +8,19 @@ const doctorSchema = new Schema(
       required: true,
       unique: true,
     },
-    specialization: { type: String, required: true, trim: true },
+    specialization: [{ type: String, required: true, trim: true }],
     experience: { type: Number, required: true },
     certifications: [{ type: String }],
     bio: { type: String },
     availableTimes: [
       {
-        day: String,
-        from: String,
-        to: String,
+        day: { type: String, required: true },
+        slots: [
+          {
+            from: { type: String, required: true },
+            to: { type: String, required: true },
+          },
+        ],
       },
     ],
   },

@@ -1,12 +1,15 @@
-import User from "../../DB/models/user.model";
+import User from "../../DB/models/user.model.js";
 import jwt from "jsonwebtoken";
 
 export const isAuth = async (req, res, next) => {
   try {
-    const token = req.headers.authorization;
-    if (!token) {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return res.status(403).json({ message: "Please provide token" });
     }
+
+    const token = authHeader.split(" ")[1];
 
     const payload = jwt.verify(token, process.env.JWT_SECRET);
     const user = await User.findById(payload.userId);

@@ -3,6 +3,8 @@ import cors from "cors";
 import dotenv from "dotenv";
 import { errorHandler } from "./src/middleware/errorHandllingMiddleware.js";
 import db_connection from "./DB/DB-connection.js";
+import AuthRoutes from "./src/modules/Auth/Auth.route.js";
+import userInfo from "./src/modules/User/User.route.js";
 
 dotenv.config();
 
@@ -13,6 +15,8 @@ app.use(express.json());
 /* --------------------------- Connect to MongoDB --------------------------- */
 db_connection();
 /* --------------------------------- Routes --------------------------------- */
+app.use("/api/auth", AuthRoutes);
+app.use("/api/user", userInfo);
 
 /* ------------------------ Error Handling from middleWare  ----------------------- */
 app.use(errorHandler);

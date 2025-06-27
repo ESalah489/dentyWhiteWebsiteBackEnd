@@ -1,9 +1,9 @@
 import mongoose, { Schema } from "mongoose";
 
-const userShcema = new Schema(
+const userSchema = new Schema(
   {
-    fristName: { type: String, required: true, trim: true, lowercase: true },
-    LastName: { type: String, required: true, trim: true, lowercase: true },
+    firstName: { type: String, required: true, trim: true, lowercase: true },
+    lastName: { type: String, required: true, trim: true, lowercase: true },
     email: {
       type: String,
       required: true,
@@ -17,27 +17,38 @@ const userShcema = new Schema(
       default:
         "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png",
     },
-    password: { type: String, required: true, trim: true, lowercase: true },
+    password: { type: String, required: true },
     role: {
       type: String,
       enum: ["client", "doctor", "admin"],
-      required: true,
       trim: true,
       lowercase: true,
+      default: "client",
     },
     phone: { type: String, trim: true, lowercase: true },
     address: {
-      city: { type: String, trim: true, lowercase: true },
-      street: { type: String, trim: true, lowercase: true },
-      country: { type: String, trim: true, lowercase: true },
-      postalCode: { type: String, trim: true, lowercase: true },
+      city: { type: String, trim: true, lowercase: true, default: "City" },
+      street: { type: String, trim: true, lowercase: true, default: "street" },
+      country: {
+        type: String,
+        trim: true,
+        lowercase: true,
+        default: "country",
+      },
+      postalCode: {
+        type: String,
+        trim: true,
+        lowercase: true,
+        default: "postalCode",
+      },
     },
     age: {
       type: Number,
-      trim: true,
+    },
+    clientWork: {
+      type: String,
       lowercase: true,
     },
-
     isLoggedIn: {
       type: Boolean,
       default: false,
@@ -49,4 +60,5 @@ const userShcema = new Schema(
     timestamps: true,
   }
 );
-module.exports = mongoose.model("User", userShcema);
+const User = mongoose.model("User", userSchema);
+export default User;

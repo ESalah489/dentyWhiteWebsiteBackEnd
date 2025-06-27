@@ -6,7 +6,7 @@ const serviceSchema = new Schema(
     description: { type: String },
     price: { type: Number, required: true },
     duration: { type: String },
-    doctor: { type: Schema.Types.ObjectId, ref: "Doctor" },
+    doctors: [{ type: Schema.Types.ObjectId, ref: "Doctor" }],
     image: { type: String },
   },
   { timestamps: true }
