@@ -1,5 +1,5 @@
 import User from "../../../DB/models/user.model.js";
-import bcrypt from "bcryptjs";
+/* ---------------------------- Get User by ID ---------------------------- */
 
 export const getUserById = async (req, res, next) => {
   try {
@@ -14,11 +14,24 @@ export const getUserById = async (req, res, next) => {
   }
 };
 
+/* ---------------------------- Get All Users ---------------------------- */
+
+export const getAllUsers = async (req, res, next) => {
+  try {
+    const users = await User.find();
+    res.status(200).json({ users });
+  } catch (error) {
+    next(error);
+  }
+};
+/* ---------------------------- Edit User by ID ---------------------------- */
+
 export const EditUserDataById = async (req, res, next) => {
   try {
     const { error } = updateUserSchema.validate(req.body, {
       abortEarly: false,
     });
+
     if (error) {
       return res.status(400).json({
         message: "Validation error",
@@ -35,9 +48,6 @@ export const EditUserDataById = async (req, res, next) => {
     const {
       firstName,
       lastName,
-      image,
-      email,
-      password,
       phone,
       address,
       age,
@@ -46,16 +56,13 @@ export const EditUserDataById = async (req, res, next) => {
 
     user.firstName = firstName || user.firstName;
     user.lastName = lastName || user.lastName;
-    user.image = image || user.image;
-    user.email = email || user.email;
     user.phone = phone || user.phone;
     user.address = address || user.address;
     user.age = age || user.age;
     user.clientWork = clientWork || user.clientWork;
 
-    if (password) {
-      const updatedPassword = await bcrypt.hash(password, 10);
-      user.password = updatedPassword;
+    if (req.file) {
+      user.image = `http://localhost:5000/uploads/${req.file.filename}`;
     }
 
     await user.save();
@@ -69,7 +76,7 @@ export const EditUserDataById = async (req, res, next) => {
   }
 };
 
-/* ---------------------------- delete user by id --------------------------- */
+/* ---------------------------- Delete User by ID ---------------------------- */
 
 export const deleteUserById = async (req, res, next) => {
   try {
@@ -88,7 +95,7 @@ export const deleteUserById = async (req, res, next) => {
   }
 };
 
-/* ----------------------------- update User Role ----------------------------- */
+/* ----------------------------- Update User Role ----------------------------- */
 
 export const updateUserRole = async (req, res, next) => {
   try {

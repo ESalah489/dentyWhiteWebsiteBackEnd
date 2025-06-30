@@ -1,18 +1,11 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import User from "../../../DB/models/user.model.js";
+import nodemailer from "nodemailer";
 
 /* -------------------------------- Register -------------------------------- */
 export const register = async (req, res, next) => {
   try {
-    const { error } = registerSchema.validate(req.body, { abortEarly: false });
-    if (error) {
-      return res.status(400).json({
-        message: "Validation error",
-        details: error.details.map((d) => d.message),
-      });
-    }
-
     const { firstName, lastName, email, password, phone, address, age } =
       req.body;
 
@@ -108,7 +101,7 @@ export const forgetPassword = async (req, res, next) => {
       { expiresIn: "15m" }
     );
 
-    const resetLink = `http://localhost:3000/reset-password/${token}`; // this will change in  future
+    const resetLink = `http://localhost:3000/reset-password/${token}`;
 
     const transporter = nodemailer.createTransport({
       service: "gmail",

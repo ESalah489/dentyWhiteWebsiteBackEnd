@@ -1,4 +1,4 @@
-const validate = (schema) => {
+export const validate = (schema) => {
   return (req, res, next) => {
     const { error } = schema.validate(req.body, { abortEarly: false });
     if (error) {
@@ -9,4 +9,12 @@ const validate = (schema) => {
   };
 };
 
-export default validate;
+export const validateParams = (schema) => (req, res, next) => {
+  const { error } = schema.validate(req.params, { abortEarly: false });
+  if (error) {
+    const errors = error.details.map((d) => d.message);
+    return res.status(400).json({ errors });
+  }
+  next();
+};
+

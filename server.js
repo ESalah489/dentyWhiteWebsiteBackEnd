@@ -5,6 +5,7 @@ import { errorHandler } from "./src/middleware/errorHandllingMiddleware.js";
 import db_connection from "./DB/DB-connection.js";
 import AuthRoutes from "./src/modules/Auth/Auth.route.js";
 import userInfo from "./src/modules/User/User.route.js";
+import doctorInfo from "./src/modules/Doctor/doctor.route.js";
 
 dotenv.config();
 
@@ -17,6 +18,7 @@ db_connection();
 /* --------------------------------- Routes --------------------------------- */
 app.use("/api/auth", AuthRoutes);
 app.use("/api/user", userInfo);
+app.use("/api/doctor", doctorInfo);
 
 /* ------------------------ Error Handling from middleWare  ----------------------- */
 app.use(errorHandler);
