@@ -9,8 +9,10 @@ const paymentSchema = new Schema(
       enum: ["pending", "paid", "failed"],
       default: "pending",
     },
+    method: { type: String, enum: ["cash", "online"] },
+    transactionId: { type: String },
+    paymentGateway: { type: String, enum: ["stripe", "paymob", "paypal"] }, 
     paymentDate: { type: Date, default: Date.now },
-    method: { type: String },
   },
   { timestamps: true }
 );
