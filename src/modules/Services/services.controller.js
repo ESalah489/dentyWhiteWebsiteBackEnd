@@ -1,9 +1,8 @@
-import Services from "../../../DB/models/service.model.js";
-import serviceCategory from "../../../DB/models/serviceCategory.model.js";
+import Service from "../../../DB/models/service.model.js";
 import Doctor from "../../../DB/models/doctor.model.js";
-import fs from "fs/promises";
-import path from "path";
-
+import Category from "../../../DB/models/serviceCategory.model.js"
+import { v2 as cloudinary } from "cloudinary";
+import { extractPublicId } from "../../../utils/extractPublicId.js"
 /* ---------------------------- Create Service ---------------------------- */
 export const createServices = async (req, res, next) => {
     try {
@@ -12,23 +11,23 @@ export const createServices = async (req, res, next) => {
             return res.status(400).json({ message: "Image is required" });
         };
 
-        const categoryExists = await serviceCategory.findById(category);
+        const categoryExists = await Category.findById(category);
         if (!categoryExists) {
             const error = new Error("Invalid category ID!");
             error.statusCode = 400;
             return next(error);
         }
 
-        const existingService = await Services.findOne({ name });
+        const existingService = await Service.findOne({ name });
         if (existingService) {
             const error = new Error("Service with this name already exists!");
             error.statusCode = 400;
             return next(error);
         };
 
-        const newService = await Services.create({
+        const newService = await Service.create({
             ...req.body,
-            image: req.file.filename
+            image: req.file.path
         });
 
         res.status(201).json({
@@ -81,14 +80,14 @@ export const getAllServices = async (req, res, next) => {
         const pageNum = Number(page) || 1;
         const skip = (pageNum - 1) * limitNum;
 
-        const allServices = await Services.find(filter)
+        const allServices = await Service.find(filter)
             .populate("category", "name")
             .populate("doctors", "name specialization")
             .sort(sort)
             .skip(Number(skip))
             .limit(Number(limit));
 
-        const total = await Services.countDocuments(filter);
+        const total = await Service.countDocuments(filter);
 
         res.status(200).json({
             message: "Services fetched successfully",
@@ -106,7 +105,7 @@ export const getAllServices = async (req, res, next) => {
 /* ---------------------------- Get Service by ID ---------------------------- */
 export const getServiceById = async (req, res, next) => {
     try {
-        const ServiceById = await Services.findById(req.params.id)
+        const ServiceById = await Service.findById(req.params.id)
             .populate("category", "name")
             .populate("doctors", "name specialization");
 
@@ -121,28 +120,24 @@ export const getServiceById = async (req, res, next) => {
 };
 
 /* ---------------------------- Edit Service by ID ---------------------------- */
-export const editServiceById = async (req, res, next) => {
+export const editServaiceById = async (req, res, next) => {
     try {
         const updatedData = { ...req.body };
 
-        if (req.file) {
-            updatedData.image = req.file.filename;
-        }
-
-        const oldService = await Services.findById(req.params.id);
+        const oldService = await Service.findById(req.params.id);
         if (!oldService) {
             return res.status(404).json({ message: "Service not found" });
         }
 
         if (updatedData.name && updatedData.name !== oldService.name) {
-            const existing = await Services.findOne({ name: updatedData.name });
+            const existing = await Service.findOne({ name: updatedData.name });
             if (existing) {
                 return res.status(400).json({ message: "Service name already exists" });
             }
         }
 
         if (updatedData.category) {
-            const categoryExists = await serviceCategory.findById(updatedData.category);
+            const categoryExists = await Category.findById(updatedData.category);
             if (!categoryExists) {
                 return res.status(400).json({ message: "Invalid category ID" });
             }
@@ -157,21 +152,20 @@ export const editServiceById = async (req, res, next) => {
             }
         }
 
-        const updatedService = await Services.findByIdAndUpdate(
+        if (req.file) {
+      updatedData.image = req.file.path;
+
+      if (oldService.image) {
+        const publicId = extractPublicId(oldService.image);
+        await cloudinary.uploader.destroy(publicId);
+      }
+    }
+
+        const updatedService = await Service.findByIdAndUpdate(
             req.params.id,
             updatedData,
             { new: true }
         );
-
-        if (req.file && oldService.image) {
-            const oldImagePath = path.join("uploads", oldService.image);
-            try {
-                await fs.unlink(oldImagePath);
-            } catch (err) {
-                console.error("Failed to delete old image:", err.message);
-            }
-        }
-
         res.status(200).json(updatedService);
     } catch (err) {
         next(err)
@@ -182,17 +176,14 @@ export const editServiceById = async (req, res, next) => {
 /* ---------------------------- Delete Service by ID ---------------------------- */
 export const deleteServiceById = async (req, res, next) => {
     try {
-        const deleteService = await Services.findByIdAndDelete(req.params.id);
+        const deleteService = await Service.findByIdAndDelete(req.params.id);
         if (!deleteService) {
             return res.status(400).json({ message: "Service not found" });
         }
-        const imagePath = path.join("uploads", deleteService.image);
-
-        try {
-            await fs.unlink(imagePath);
-        } catch (err) {
-            console.error("Failed to delete image:", err.message);
-        }
+        if (deleteService.image) {
+      const publicId = extractPublicId(deleteService.image);
+      await cloudinary.uploader.destroy(publicId);
+    }
 
         res.status(200).json(deleteService);
 

@@ -8,10 +8,11 @@ const serviceSchema = new Schema(
     sessions:{ type: String,index: true},
     duration: { type: String,required: true},
     doctors: [{ type: Schema.Types.ObjectId, ref: "Doctor",required: true,index: true }],
-    category: { type: Schema.Types.ObjectId, ref: "category", required: true ,index: true},
+    category: { type: Schema.Types.ObjectId, ref: "Category", required: true ,index: true},
     image: { type: String,required: true},
   },
   { timestamps: true }
+
 );
 serviceSchema.index({ createdAt: -1 });
 

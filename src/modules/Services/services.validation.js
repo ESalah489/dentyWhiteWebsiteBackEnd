@@ -1,5 +1,5 @@
 import Joi from "joi";
-import { isValidObjectId } from "../../utils/isValidObjectId.js"; 
+import { isValidObjectId } from "../../../utils/isValidObjectId.js"; 
 
  export const servicesSchema=Joi.object({
     name:Joi.string().trim().min(2).max(50).required().messages({
@@ -52,6 +52,9 @@ import { isValidObjectId } from "../../utils/isValidObjectId.js";
       "any.required": "Category is required",
       "any.invalid": "Category ID must be a valid MongoDB ObjectId",
     }),
+    type: Joi.string()
+    .valid("service", "doctor", "users")
+    .optional(),
 
 });
 

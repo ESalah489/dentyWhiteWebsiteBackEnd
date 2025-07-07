@@ -1,4 +1,4 @@
-import Services from "../service.model.js";
+import Service from "../../../DB/models/service.model.js";
 import Category from "../../../DB/models/serviceCategory.model.js";
 import Doctor from "../../../DB/models/doctor.model.js";
 
@@ -6,7 +6,7 @@ export const searchServices = async (req, res, next) => {
   try {
     const {
       keyword,
-      category,
+      Category,
       minPrice,
       maxPrice,
       sessions,
@@ -19,7 +19,6 @@ export const searchServices = async (req, res, next) => {
     let filter = {};
     let sort = { createdAt: -1 };
 
-    // ✅ keyword search across multiple fields
     if (keyword) {
       const foundCategories = await Category.find({
         name: { $regex: keyword, $options: "i" },
@@ -29,54 +28,49 @@ export const searchServices = async (req, res, next) => {
         name: { $regex: keyword, $options: "i" },
       }).select("_id");
 
-      const categoryIds = foundCategories.map((cat) => cat._id);
+      const CategoryIds = foundCategories.map((cat) => cat._id);
       const doctorIds = foundDoctors.map((doc) => doc._id);
 
       filter.$or = [
         { name: { $regex: keyword, $options: "i" } },
         { description: { $regex: keyword, $options: "i" } },
-        { category: { $in: categoryIds } },
+        { Category: { $in: CategoryIds } },
         { doctors: { $in: doctorIds } },
       ];
     }
 
-    // ✅ Filter by category ID(s)
-    if (category) {
-      const categoryArray = category.split(",");
-      filter.category = { $in: categoryArray };
+    if (Category) {
+      const CategoryArray = Category.split(",");
+      filter.Category = { $in: CategoryArray };
     }
 
-    // ✅ Filter by price
     if (minPrice || maxPrice) {
       filter.price = {};
       if (minPrice) filter.price.$gte = Number(minPrice);
       if (maxPrice) filter.price.$lte = Number(maxPrice);
     }
 
-    // ✅ Filter by sessions (partial match)
     if (sessions) {
       filter.sessions = { $regex: sessions, $options: "i" };
     }
 
-    // ✅ Sorting
     if (sortBy) {
       sort = {};
       sort[sortBy] = order === "asc" ? 1 : -1;
     }
 
-    // ✅ Pagination
     const limitNum = Number(limit);
     const pageNum = Number(page);
     const skip = (pageNum - 1) * limitNum;
 
-    const services = await Services.find(filter)
-      .populate("category", "name")
+    const services = await Service.find(filter)
+      .populate("Category", "name")
       .populate("doctors", "name specialization")
       .sort(sort)
       .skip(skip)
       .limit(limitNum);
 
-    const total = await Services.countDocuments(filter);
+    const total = await Service.countDocuments(filter);
 
     res.status(200).json({
       message: "Search result",
@@ -97,7 +91,7 @@ export const getSuggestions = async (req, res, next) => {
     const regex = new RegExp(`^${keyword}`, "i");
 
     const [services, doctors, categories] = await Promise.all([
-      Services.find({ name: { $regex: regex } }).limit(5).select("name"),
+      Service.find({ name: { $regex: regex } }).limit(5).select("name"),
       Doctor.find({ name: { $regex: regex } }).limit(5).select("name"),
       Category.find({ name: { $regex: regex } }).limit(5).select("name"),
     ]);

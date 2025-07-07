@@ -1,36 +1,3 @@
-// import serviceCategory from "../../../DB/models/serviceCategory.model.js";
-
-//  /* ---------------------------- Create Service Category---------------------------- */
-// export const createServicesCategory=async(req,res,next)=>{
-//     try{}catch(err){
-//         next(err)
-//     }
-// };
-// /* ---------------------------- Get All Services Category---------------------------- */
-// export const getServicesCategory=async(req,res,next)=>{
-//     try{}catch(err){
-//         next(err)
-//     }
-// };
-// /* ---------------------------- Edit Service Category by ID---------------------------- */
-// export const editServiceCategoryById=async(req,res,next)=>{
-//     try{}catch(err){
-//         next(err)
-//     }
-// };
-// /* ---------------------------- Delete Service Category by ID---------------------------- */
-// export const deleteServiceCategoryById=async(req,res,next)=>{
-//     try{}catch(err){
-//         next(err)
-//     }
-// };
-// /* ---------------------------- Get Service Category by ID---------------------------- */
-// export const getServiceCategoryById=async(req,res,next)=>{
-//     try{}catch(err){
-//         next(err)
-//     }
-// };
-
 import Category from "../../../DB/models/serviceCategory.model.js";
 
 /* ---------------------------- Create Category ---------------------------- */

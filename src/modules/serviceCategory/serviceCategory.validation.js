@@ -1,5 +1,5 @@
 import Joi from "joi";
-import { isValidObjectId } from "../../utils/isValidObjectId.js"; 
+import { isValidObjectId } from "../../../utils/isValidObjectId.js"; 
 
 export const categorySchema = Joi.object({
   name: Joi.string().trim().min(2).max(50).required().messages({

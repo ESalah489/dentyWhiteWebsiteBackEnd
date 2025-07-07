@@ -8,14 +8,7 @@ import userInfo from "./src/modules/User/User.route.js";
 import doctorInfo from "./src/modules/Doctor/doctor.route.js";
 import services from "./src/modules/Services/services.route.js"
 import category from "./src/modules/serviceCategory/serviceCategory.route.js";
-import { searchServices } from "./src/modules/Search/search.route.js";
-
-import path from "path";
-import { fileURLToPath } from "url";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
+import searchServices from "./src/modules/Search/search.route.js";
 
 dotenv.config();
 
@@ -32,8 +25,6 @@ app.use("/api/doctor", doctorInfo);
 app.use("/api/services",services)
 app.use("/api/category",category)
 app.use("/api/search", searchServices);
-app.use("/api/search/suggestions", searchServices);
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 /* ------------------------ Error Handling from middleWare  ----------------------- */
 app.use(errorHandler);

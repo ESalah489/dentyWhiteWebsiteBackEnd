@@ -1,4 +1,6 @@
 import User from "../../../DB/models/user.model.js";
+import { updateUserSchema } from "./User.validation.js";
+
 /* ---------------------------- Get User by ID ---------------------------- */
 
 export const getUserById = async (req, res, next) => {
@@ -28,9 +30,6 @@ export const getAllUsers = async (req, res, next) => {
 
 export const EditUserDataById = async (req, res, next) => {
   try {
-    const { error } = updateUserSchema.validate(req.body, {
-      abortEarly: false,
-    });
 
     if (error) {
       return res.status(400).json({
@@ -45,14 +44,7 @@ export const EditUserDataById = async (req, res, next) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    const {
-      firstName,
-      lastName,
-      phone,
-      address,
-      age,
-      clientWork,
-    } = req.body;
+    const { firstName, lastName, phone, address, age, clientWork } = req.body;
 
     user.firstName = firstName || user.firstName;
     user.lastName = lastName || user.lastName;
@@ -62,7 +54,7 @@ export const EditUserDataById = async (req, res, next) => {
     user.clientWork = clientWork || user.clientWork;
 
     if (req.file) {
-      user.image = `http://localhost:5000/uploads/${req.file.filename}`;
+      user.image = req.file.path;
     }
 
     await user.save();
@@ -72,6 +64,7 @@ export const EditUserDataById = async (req, res, next) => {
       user,
     });
   } catch (error) {
+    console.log(12345);
     next(error);
   }
 };
