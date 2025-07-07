@@ -4,6 +4,7 @@ import {
   editDoctorById,
   deleteDoctorById,
   getAllDoctors,
+  createDoctor,
 } from "../Doctor/doctor.controller.js";
 import { isAuth } from "../../middleware/isauthMiddleware.js";
 import { allowRoles } from "../../middleware/checkRole.js";
@@ -13,10 +14,11 @@ import {
 } from "../../middleware/validationMiddleware.js";
 import { editDoctorSchema, deleteDoctorSchema } from "./doctor.validation.js";
 const router = express.Router();
+router.post("/", isAuth, allowRoles("admin"), createDoctor);
 
 router.get("/:id", isAuth, getDoctorById);
 
-router.put("/:id", isAuth, validate(editDoctorSchema), editDoctorById);
+router.patch("/:id", isAuth, validate(editDoctorSchema), editDoctorById);
 
 router.delete(
   "/:id",
