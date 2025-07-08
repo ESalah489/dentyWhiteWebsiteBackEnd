@@ -50,10 +50,35 @@ const appointmentSchema = new mongoose.Schema({
         type: Number,
         required: true
     },
+    history: [{
+        action: { type: String, required: true },
+        by: {
+            type: mongoose.Schema.Types.Mixed, 
+            default: null
+        },
+        at: { type: Date, default: Date.now }
+    }],
+    attended: {
+        type: Boolean,
+        default: true 
+    },
+    noShowHandled: {
+        type: Boolean,
+        default: false
+    },
+
+
+    rescheduleCount: { type: Number, default: 0 },
+
     transactionId: { type: String },
     paymentGateway: { type: String }, 
 
     bookedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    payment: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Payment"
+    },
+
 
     notes: String,
     cancellationReason: String,
@@ -76,7 +101,11 @@ const appointmentSchema = new mongoose.Schema({
            type: String,
             enum: ["pending", "sent", "failed"], 
             default: "pending" 
-          }
+        },
+         label: {
+            type: String,
+            enum: ['24h', '2h'],
+        },
     }], 
 
     metadata: mongoose.Schema.Types.Mixed
@@ -100,6 +129,12 @@ appointmentSchema.virtual('canCancel').get(function () {
 });
 
 appointmentSchema.index({ doctor: 1, startTime: 1 }, { unique: true });
+
+appointmentSchema.index({
+  'patientInfo.firstName': 'text',
+  'patientInfo.lastName': 'text',
+  'patientInfo.phone': 'text'
+});
 
 const Appointment = mongoose.model("Appointment", appointmentSchema);
 export default Appointment;
