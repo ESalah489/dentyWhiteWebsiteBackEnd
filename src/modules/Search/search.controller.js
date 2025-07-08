@@ -64,7 +64,7 @@ export const searchServices = async (req, res, next) => {
     const skip = (pageNum - 1) * limitNum;
 
     const services = await Service.find(filter)
-      .populate("Category", "name")
+      .populate("category", "name")
       .populate("doctors", "name specialization")
       .sort(sort)
       .skip(skip)
