@@ -1,12 +1,12 @@
 import User from "../../../DB/models/user.model.js";
-import { updateUserSchema } from "./User.validation.js";
+import Address from "../../../DB/models/Address.model.js";
 
 /* ---------------------------- Get User by ID ---------------------------- */
 
 export const getUserById = async (req, res, next) => {
   try {
     const userId = req.params.id;
-    const user = await User.findById(userId);
+    const user = await User.findById(userId).populate("address");
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
@@ -17,44 +17,46 @@ export const getUserById = async (req, res, next) => {
 };
 
 /* ---------------------------- Get All Users ---------------------------- */
-
 export const getAllUsers = async (req, res, next) => {
   try {
-    const users = await User.find();
+    const users = await User.find().populate("address");
     res.status(200).json({ users });
   } catch (error) {
     next(error);
   }
 };
+
 /* ---------------------------- Edit User by ID ---------------------------- */
 
 export const EditUserDataById = async (req, res, next) => {
   try {
-
-    if (error) {
-      return res.status(400).json({
-        message: "Validation error",
-        details: error.details.map((d) => d.message),
-      });
-    }
-
     const userId = req.params.id;
-    const user = await User.findById(userId);
+
+    const user = await User.findById(userId).populate("address");
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
     const { firstName, lastName, phone, address, age, clientWork } = req.body;
-
     user.firstName = firstName || user.firstName;
     user.lastName = lastName || user.lastName;
     user.phone = phone || user.phone;
-    user.address = address || user.address;
     user.age = age || user.age;
     user.clientWork = clientWork || user.clientWork;
 
     if (req.file) {
       user.image = req.file.path;
+    }
+
+    if (address) {
+      if (user.address) {
+        await Address.findByIdAndUpdate(user.address._id, address, {
+          new: true,
+        });
+      } else {
+        const newAddress = await Address.create(address);
+        user.address = newAddress._id;
+      }
     }
 
     await user.save();
@@ -64,7 +66,6 @@ export const EditUserDataById = async (req, res, next) => {
       user,
     });
   } catch (error) {
-    console.log(12345);
     next(error);
   }
 };
@@ -80,9 +81,13 @@ export const deleteUserById = async (req, res, next) => {
       return res.status(404).json({ message: "User not found" });
     }
 
+    if (user.address) {
+      await Address.findByIdAndDelete(user.address);
+    }
+
     await User.findByIdAndDelete(userId);
 
-    res.status(200).json({ message: "User deleted successfully", user });
+    res.status(200).json({ message: "User and address deleted", user });
   } catch (error) {
     next(error);
   }

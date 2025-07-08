@@ -2,8 +2,9 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import User from "../../../DB/models/user.model.js";
 import nodemailer from "nodemailer";
-
+import Address from "../../../DB/models/Address.model.js";
 /* -------------------------------- Register -------------------------------- */
+
 export const register = async (req, res, next) => {
   try {
     const { firstName, lastName, email, password, phone, address, age } =
@@ -16,13 +17,15 @@ export const register = async (req, res, next) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    const savedAddress = await Address.create(address);
+
     const newUser = new User({
       firstName,
       lastName,
       email,
       password: hashedPassword,
       phone,
-      address,
+      address: savedAddress._id, // هنا نربط عنوان المستخدم
       age,
     });
 

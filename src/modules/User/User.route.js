@@ -18,7 +18,7 @@ import { updateUserRoleSchema, deleteUserSchema } from "./User.validation.js";
 const router = express.Router();
 router.get("/:id", isAuth, getUserById);
 router.put("/:id", isAuth, upload.single("image"), EditUserDataById);
-router.put(
+router.patch(
   "/update-role/:id",
   isAuth,
   allowRoles("admin"),
