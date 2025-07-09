@@ -10,11 +10,18 @@ cloudinary.config({
 });
 
 export const storage = new CloudinaryStorage({
-  cloudinary,
-  params: {
-    folder: "users",
+   cloudinary,
+  params: (req, file) => {
+    let folderName = "general";
+
+    if (req.body.type === "service") folderName = "services";
+    if (req.body.type === "doctor") folderName = "doctors";
+    if (req.body.type === "users") folderName = "users";
+
+    return {
+      folder: folderName,
     allowed_formats: ["jpg", "png", "jpeg", "webp"],
     transformation: [{ width: 500, height: 500, crop: "limit" }],
+    };
   },
 });
-
