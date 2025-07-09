@@ -29,6 +29,7 @@ export const updateUserSchema = Joi.object({
     "string.base": "Client work must be a string",
   }),
 
+  image: Joi.string().optional(),
   address: Joi.object({
     city: Joi.string().optional().messages({
       "string.base": "City must be a string",
@@ -47,13 +48,10 @@ export const updateUserSchema = Joi.object({
 
 /* --------------------------- update role of user -------------------------- */
 export const updateUserRoleSchema = Joi.object({
-  role: Joi.string()
-    .valid("client", "doctor", "admin")
-    .required()
-    .messages({
-      "any.only": "Role must be either client, doctor, or admin",
-      "string.empty": "Role is required",
-    }),
+  role: Joi.string().valid("client", "doctor", "admin").required().messages({
+    "any.only": "Role must be either client, doctor, or admin",
+    "string.empty": "Role is required",
+  }),
 });
 /* --------------------- delete user by admin reqire id --------------------- */
 export const deleteUserSchema = Joi.object({

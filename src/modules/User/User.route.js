@@ -8,27 +8,17 @@ import {
 } from "../User/User.controller.js";
 import { isAuth } from "../../middleware/isauthMiddleware.js";
 import { allowRoles } from "../../middleware/checkRole.js";
-import upload from "../../middleware/upload.js";
+import { upload } from "../../middleware/upload.js";
 import {
   validate,
   validateParams,
 } from "../../middleware/validationMiddleware.js";
-import {
-  updateUserSchema,
-  updateUserRoleSchema,
-  deleteUserSchema,
-} from "./User.validation.js";
+import { updateUserRoleSchema, deleteUserSchema } from "./User.validation.js";
 
 const router = express.Router();
 router.get("/:id", isAuth, getUserById);
-router.put(
-  "/:id",
-  isAuth,
-  upload.single("image"),
-  validate(updateUserSchema),
-  EditUserDataById
-);
-router.put(
+router.put("/:id", isAuth, upload.single("image"), EditUserDataById);
+router.patch(
   "/update-role/:id",
   isAuth,
   allowRoles("admin"),

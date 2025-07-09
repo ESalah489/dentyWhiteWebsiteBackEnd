@@ -1,11 +1,14 @@
 import Joi from "joi";
 
 export const editDoctorSchema = Joi.object({
-  specialization: Joi.string().min(2).max(100).optional().messages({
-    "string.base": "Specialization must be a string",
-    "string.min": "Specialization must be at least 2 characters",
-    "string.max": "Specialization must be at most 100 characters",
-  }),
+  specialization: Joi.array()
+    .items(Joi.string().min(2).max(100))
+    .optional()
+    .messages({
+      "string.base": "Each specialization must be a string",
+      "string.min": "Specialization must be at least 2 characters",
+      "string.max": "Specialization must be at most 100 characters",
+    }),
 
   experience: Joi.number().min(0).max(80).optional().messages({
     "number.base": "Experience must be a number",
@@ -28,16 +31,36 @@ export const editDoctorSchema = Joi.object({
   availableTimes: Joi.array()
     .items(
       Joi.object({
-        day: Joi.string().required(),
-        from: Joi.string().required(),
-        to: Joi.string().required(),
+        day: Joi.string().required().messages({
+          "string.base": "Day must be a string",
+          "any.required": "Day is required",
+        }),
+        slots: Joi.array()
+          .items(
+            Joi.object({
+              from: Joi.string().required().messages({
+                "string.base": "From must be a string",
+                "any.required": "From is required",
+              }),
+              to: Joi.string().required().messages({
+                "string.base": "To must be a string",
+                "any.required": "To is required",
+              }),
+            })
+          )
+          .required()
+          .messages({
+            "array.base": "Slots must be an array of time ranges",
+            "any.required": "Slots are required",
+          }),
       })
     )
     .optional()
     .messages({
-      "array.base": "AvailableTimes must be an array of time objects",
+      "array.base": "AvailableTimes must be an array of objects",
     }),
 });
+
 /* ------------------------------ delete doctor ----------------------------- */
 export const deleteDoctorSchema = Joi.object({
   id: Joi.string().length(24).hex().required().messages({

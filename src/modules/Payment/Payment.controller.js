@@ -11,6 +11,10 @@ export const initiatePayment = async (req, res) => {
     const appointment = await Appointment.findById(appointmentId).populate('user service');
     if (!appointment) return res.status(404).json({ message: 'Appointment not found' });
 
+    if (!appointment.service) {
+      return res.status(400).json({ message: 'Service not found in appointment' });
+    }
+
     const payment = await Payment.create({
       user: req.user._id,
       service: appointment.service._id,
@@ -32,9 +36,18 @@ export const initiatePayment = async (req, res) => {
         const token = await createPaymentToken(payment, appointment);
         paymentUrl = getPaymentUrl(token);
         payment.transactionId = token;
-      } else if (gateway === 'paypal') {
+       } else if (gateway === 'paypal') {
         const order = await createOrder(payment, appointment);
-        paymentUrl = order.links.find(link => link.rel === 'approve').href;
+
+        console.log("🧾 PayPal Order Response:", JSON.stringify(order, null, 2));
+
+        const approvalLinkObj = order.links?.find(link => link.rel === 'approve');
+
+        if (!approvalLinkObj) {
+          return res.status(500).json({ message: 'Approval link not found in PayPal response' });
+        }
+
+        paymentUrl = approvalLinkObj.href;
         payment.transactionId = order.id;
       }
 
@@ -72,7 +85,7 @@ export const verifyPayment = async (req, res) => {
       await payment.save();
 
       await Appointment.updateOne(
-        { _id: req.body.appointmentId },
+        { payment: payment._id },
         { paymentStatus: 'paid' }
       );
     }
@@ -82,3 +95,46 @@ export const verifyPayment = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+export const paymobCallbackHandler = async (req, res) => {
+  try {
+    console.log("📥 Webhook Received:", req.body);
+
+    const { obj } = req.body;
+console.log("🔥 Full Body:", req.body);
+
+    if (!obj || !obj.id || !obj.success) {
+      return res.status(400).json({ message: "Invalid callback data" });
+    }
+
+    const transactionId = obj.id;
+
+    const payment = await Payment.findOne({ transactionId });
+
+    if (!payment) {
+      return res.status(404).json({ message: "Payment not found for this transaction" });
+    }
+
+    // تحقق من النجاح
+    if (obj.success && obj.pending === false) {
+      payment.status = 'paid';
+      payment.paymentDate = new Date();
+      await payment.save();
+
+      await Appointment.updateOne(
+        { payment: payment._id },
+        { paymentStatus: 'paid' }
+      );
+
+      console.log(`✅ Payment success for appointment via Paymob Transaction: ${transactionId}`);
+    } else {
+      console.log(`❌ Payment failed or still pending. Transaction: ${transactionId}`);
+    }
+
+    return res.status(200).send("✅ Webhook processed");
+  } catch (error) {
+    console.error("❌ Error in paymobCallbackHandler:", error);
+    return res.status(500).json({ message: "Server error in callback" });
+  }
+};
+

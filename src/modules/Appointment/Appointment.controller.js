@@ -2,10 +2,9 @@ import Appointment from '../../../DB/models/booking.model.js'
 import User from '../../../DB/models/user.model.js'
 import Doctor from '../../../DB/models/doctor.model.js'
 import { sendEmail } from '../../utils/email.js';
+import { templates } from '../../utils/messageTemplates.js';
 import { sendWhatsAppMessage } from '../../utils/whatsapp.js';
 import Stripe from 'stripe';
-import { verifyPayment as verifyPaymob } from '../../utils/paymob.js';
-import { verifyPayment as verifyPaypal } from '../../utils/paypal.js';
 
 
 /* ---------------------------- Create an appointment (client or admin) ---------------------------- */
@@ -120,25 +119,35 @@ export const createAppointment = async (req, res) => {
         });
 
         await appointment.save();
+               
+        if (patientInfo?.email) {
+            const formattedDate = new Date(appointment.date).toLocaleDateString('en-GB');
+            const formattedStart = new Date(appointment.startTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+            const formattedEnd = new Date(appointment.endTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 
-        if(isAdmin) {
-            if (patientInfo?.email) {
-                await sendEmail ({
-                    to: patientInfo.email,
-                    subject: 'Your appointment is confirmed',
-                    html: `<p> Hi, ${patientInfo.firstName}, Thank you, Your appointment is booked successfully in clinic, see you soon :) </p>`,
-                });
-            }
+            const tpl = templates.appointmentCreated({
+                firstName: patientInfo.firstName,
+                appointmentDate: formattedDate,
+                startTime: formattedStart,
+                endTime: formattedEnd
+            });
+
+            await sendEmail({ to: patientInfo.email, subject: tpl.subject, html: tpl.emailHtml });
 
             if (patientInfo?.phone) {
-                await sendWhatsAppMessage({
-                    to: patientInfo.phone,
-                    message: ` Hi, ${patientInfo.firstName}, Thank you, Your appointment is booked successfully in clinic, see you soon :) `,
-                });
+                const result = await sendWhatsAppMessage({ to: patientInfo.phone, message: tpl.whatsappText });
+
+                if (!result.success && result.reason === 'not_joined') {
+                console.log("⚠️ WhatsApp not delivered. User needs to join sandbox.");
+                appointment.whatsappReminder = result.message;
+                }
             }
         }
 
-        res.status(201).json({message : "appointment created", appointment});
+
+        res.status(201).json({message : "appointment created", appointment,
+            whatsappReminder: appointment.whatsappReminder || null
+        });
     } catch (error) {
         res.status(500).json({message: error.message});
     }
@@ -173,11 +182,11 @@ export const getSlotsStatus = async (req, res) => {
 /* ---------------------------- confirm Appointment By Admin ---------------------------- */
 
 export const confirmAppointment = async (req, res) => {
-    try{
+    try {
         const appointment = await Appointment.findById(req.params.id);
 
         if (!appointment) {
-            return res.status(404).json({ message: 'Appointment Not Found!'});
+            return res.status(404).json({ message: 'Appointment Not Found!' });
         }
 
         if (appointment.status !== 'pending') {
@@ -188,7 +197,6 @@ export const confirmAppointment = async (req, res) => {
             return res.status(400).json({ message: 'Doctor and service are required' });
         }
 
-
         appointment.status = 'confirmed';
         appointment.confirmedBy = req.user._id;
         appointment.history.push({ action: 'confirmed', by: req.user._id });
@@ -198,28 +206,42 @@ export const confirmAppointment = async (req, res) => {
         console.log("Appointment.patientInfo:", appointment.patientInfo);
 
         const { email, phone, firstName = 'User' } = appointment.patientInfo || {};
+        let whatsappMessageResult = null;
 
-        if(email && firstName) {
-            await sendEmail({
-                to: email,
-                subject: 'Appointment Confirmed',
-                html: `<p>Hi, ${firstName}, Thank You,  your appointment has been confirmed successfully. See you soon :) </p>`
+        if (email && firstName) {
+            const formattedDate = new Date(appointment.date).toLocaleDateString('en-GB');
+            const formattedStart = new Date(appointment.startTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+            const formattedEnd = new Date(appointment.endTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+
+            const tpl = templates.appointmentConfirmed({
+                firstName,
+                appointmentDate: formattedDate,
+                startTime: formattedStart,
+                endTime: formattedEnd
             });
+
+            await sendEmail({ to: email, subject: tpl.subject, html: tpl.emailHtml });
+
+            if (phone) {
+                whatsappMessageResult = await sendWhatsAppMessage({ to: phone, message: tpl.whatsappText });
+
+                if (!whatsappMessageResult.success) {
+                    appointment.whatsappReminder = whatsappMessageResult.reason;
+                    await appointment.save();
+                }
+            }
         }
 
-        if (phone && firstName) {
-            await sendWhatsAppMessage({
-                to: phone,
-                message: `Hi, ${firstName}, Thank You,  your appointment has been confirmed successfully. See you soon :) `
-            });
-        }
-
-        res.status(200).json({ message: 'Appointment Confirmed', appointment});
+        res.status(200).json({
+            message: 'Appointment Confirmed',
+            appointment,
+            whatsapp: whatsappMessageResult?.reason || 'Message sent successfully'
+        });
 
     } catch (error) {
-        res.status(500).json({ message: error.message});
+        res.status(500).json({ message: error.message });
     }
-}
+};
 
 /* ---------------------------- cancel Appointment By Admin or User ---------------------------- */
 
@@ -257,6 +279,8 @@ export const cancelAppointment = async (req, res) => {
         await appointment.populate('payment');
         const payment = appointment.payment;
 
+        const { email, phone, firstName = 'User' } = appointment.patientInfo || {};
+
         if (payment?.status === 'paid' && payment?.paymentGateway === 'stripe') {
             const Stripe = (await import('stripe')).default;
             const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
@@ -268,52 +292,46 @@ export const cancelAppointment = async (req, res) => {
             payment.status = 'refunded';
             await payment.save();
 
-            await sendEmail({
-                to: appointment.patientInfo.email,
-                subject: "Refund Processed",
-                html: `<p>Hi ${appointment.patientInfo.firstName}, your refund has been processed successfully. :)</p>`
+            const refundTpl = templates.refundProcessed({ firstName });
+
+            if (email) {
+                await sendEmail({ to: email, subject: refundTpl.subject, html: refundTpl.emailHtml });
+            }
+
+            if (phone) {
+                await sendWhatsAppMessage({ to: phone, message: refundTpl.whatsappText });
+            }
+            }
+
+            const formattedDate = new Date(appointment.date).toLocaleDateString('en-GB');
+            const formattedStart = new Date(appointment.startTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+            const formattedEnd = new Date(appointment.endTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+
+            const tpl = templates.appointmentCancelled({
+            firstName,
+            cancellationMessage,
+            byClinic: isAdmin,
+            appointmentDate: formattedDate,
+            startTime: formattedStart,
+            endTime: formattedEnd
             });
 
-            await sendWhatsAppMessage({
-                to: phone,
-                message: `Hi ${appointment.patientInfo.firstName}, your refund has been processed successfully. :)`
-            });
+            if (email) {
+            await sendEmail({ to: email, subject: tpl.subject, html: tpl.emailHtml });
+            }
+
+            let whatsappMessageResult = null;
+            if (phone) {
+            whatsappMessageResult = await sendWhatsAppMessage({ to: phone, message: tpl.whatsappText });
+            if (!whatsappMessageResult.success) {
+                appointment.whatsappReminder = whatsappMessageResult.reason;
+                await appointment.save();
+            }
         }
 
-        appointment.status = 'cancelled';
-        appointment.cancelledBy = req.user._id;
-        appointment.cancellationMessage = cancellationMessage;
-        appointment.history.push({ action: 'cancelled', by: req.user._id });
-
-        await appointment.save();
-
-        const { email, phone, firstName = 'User' } = appointment.patientInfo || {};
-
-        if(email) {
-            const subject = isAdmin ? 'Appointment Cancelled by Clinic' : 'Appointment Cancelled';
-            const content = isAdmin
-                ? `<p>Hi ${firstName}, your appointment was cancelled by the clinic. Reason: ${cancellationMessage} :)</p>`
-                : `<p>The user has requested cancellation. Reason: ${cancellationMessage} :)</p>`;
-
-            await sendEmail({
-                to: email,
-                subject,
-                html: content
-            });
-        }
-
-        if (phone) {
-           const msg = isAdmin
-                ? `Hi ${firstName}, your appointment was cancelled by the clinic. Reason: ${cancellationMessage} :)`
-                : `The user has requested cancellation. Reason:  ${cancellationMessage} :)`;
-
-            await sendWhatsAppMessage({
-                to: phone,
-                message: msg
-            });
-        }
-
-        res.status(200).json({ message: 'Appointment Cancelled', appointment});
+        res.status(200).json({ message: 'Appointment Cancelled', appointment,
+            whatsapp: whatsappMessageResult?.reason || 'Message sent successfully'
+        });
 
     } catch (error) {
         res.status(500).json({ message: error.message});
@@ -443,35 +461,34 @@ export const rescheduleAppointment = async (req, res) => {
         const formattedStart = new Date(appointment.startTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
         const formattedEnd = new Date(appointment.endTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 
-        const subject = 'Your Appointment Has Been Rescheduled';
-        const content = `
-        <p>Hi ${firstName},</p>
-        <p>Your appointment has been <strong>rescheduled</strong>.</p>
-        <p> New Date: <strong>${formattedDate}</strong></p>
-        <p> New Time: <strong>${formattedStart} - ${formattedEnd}</strong></p>
-        <p>Thank you for your understanding :) </p>
-        `;
+        const tpl = templates.appointmentRescheduled({
+            firstName,
+            newDate: formattedDate,
+            newStartTime: formattedStart,
+            newEndTime: formattedEnd,
+        });
 
-        
         if (email) {
-            await sendEmail({
-                to: email,
-                subject,
-                html: content
-            });
-        }
-
-        const message = `Hi ${firstName}, your appointment has been rescheduled to ${formattedDate} from ${formattedStart} to ${formattedEnd}. Thank you for your understanding :) `;
-        
-        if (phone) {
-        await sendWhatsAppMessage({
-            to: phone,
-            message
+        await sendEmail({
+            to: email,
+            subject: tpl.subject,
+            html: tpl.emailHtml
         });
         }
 
+        let whatsappMessageResult = null;
+        if (phone) {
+        whatsappMessageResult = await sendWhatsAppMessage({ to: phone, message: tpl.whatsappText });
+        if (!whatsappMessageResult.success) {
+            appointment.whatsappReminder = whatsappMessageResult.reason;
+            await appointment.save();
+        }
+        }
 
-        res.status(200).json({ message: "Appointment rescheduled!", appointment});
+
+        res.status(200).json({ message: "Appointment rescheduled!", appointment,
+            whatsapp: whatsappMessageResult?.reason || 'Message sent successfully'
+        });
 
     } catch (error) {
         res.status(500).json({ message: error.message});
@@ -549,26 +566,25 @@ export const markAppointmentCompleted = async (req, res) => {
 
         const { email, phone, firstName = 'User' } = appointment.patientInfo || {};
 
-        const message = `Hi ${firstName}, thank you for visiting us today.  
-                        We hope the experience met your expectations.  
-                        We'd really appreciate your feedback — leave us a quick review on our website. :) `;
-        
+        const tpl = templates.appointmentCompleted({ firstName });
+
         if (email) {
-            await sendEmail({
-                to: email,
-                subject: 'Thank you for your visit! ',
-                html: `<p>${message}</p>`
-            });
+            await sendEmail({ to: email, subject: tpl.subject, html: tpl.emailHtml });
         }
 
+        let whatsappMessageResult = null;
         if (phone) {
-            await sendWhatsAppMessage({
-                to: phone,
-                message
-            });
-        }
+            whatsappMessageResult = await sendWhatsAppMessage({ to: phone, message: tpl.whatsappText });
+            if (!whatsappMessageResult.success) {
+                appointment.whatsappReminder = whatsappMessageResult.reason;
+                await appointment.save();
+            }
+        } 
 
-        res.json({ message: 'Appointment marked as completed', appointment });
+
+        res.json({ message: 'Appointment marked as completed', appointment,
+            whatsapp: whatsappMessageResult?.reason || 'Message sent successfully'
+         });
 
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -671,6 +687,9 @@ export const markNoShow = async (req, res) => {
       return res.status(400).json({ message: "Only completed appointments can be marked as no-show" });
     }
 
+    const { firstName = 'User', email, phone } = appointment.patientInfo || {};
+    const payment = appointment.payment;
+
     appointment.status = 'no-show';
     appointment.attended = false;
     appointment.noShowHandled = true;
@@ -681,63 +700,59 @@ export const markNoShow = async (req, res) => {
       at: new Date()
     });
 
-    let message = `Hi ${firstName}, you missed your appointment.`;
-    let html = `<p>${message}</p>`;
-
-    if (payment?.status === 'refunded') {
-    message += ` A refund has been issued for your payment.`;
-    html += `<p>Your payment has been refunded.</p>`;
-    }
-
-    if (payment?.status === 'refund-pending') {
-    message += ` We are reviewing your refund.`;
-    html += `<p>Your refund request is under review.</p>`;
-    }
-
-    const rebookUrl = `${process.env.FRONTEND_URL}/appointments/rebook/${appointment._id}`;
-    message += ` You can book a new session here: ${rebookUrl}`;
-    html += `<p><a href="${rebookUrl}" style="color:blue">Click here to rebook your appointment</a></p>`;
-
-    if (email) {
-    await sendEmail({
-        to: email,
-        subject: 'Missed Appointment Notification',
-        html,
-    });
-    }
-
-    if (phone) {
-    await sendWhatsAppMessage({ to: phone, message });
-    }
-
-
     // Refund if paid
-    const payment = appointment.payment;
     if (payment?.status === 'paid' && payment?.paymentGateway) {
       if (payment.paymentGateway === 'stripe') {
         const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
         await stripe.refunds.create({ payment_intent: payment.transactionId });
         payment.status = 'refunded';
       } else if (payment.paymentGateway === 'paymob') {
-        // Paymob currently does not support automatic refunds in dev mode (but add note)
-        payment.status = 'refund-pending'; // admin handles manually
+        payment.status = 'refund-pending'; 
       } else if (payment.paymentGateway === 'paypal') {
-        // PayPal refund using API (you can add auto refund here if needed)
-        payment.status = 'refund-pending'; // handle via PayPal dashboard for now
+        payment.status = 'refund-pending'; 
       }
+
       await payment.save();
+
+      const refundTpl = templates.refundProcessed({ firstName });
+
+      if (email) {
+        await sendEmail({ to: email, subject: refundTpl.subject, html: refundTpl.emailHtml });
+      }
+
+      if (phone) {
+        await sendWhatsAppMessage({ to: phone, message: refundTpl.whatsappText });
+      }
     }
+
+    const rebookUrl = `${process.env.FRONTEND_URL}/appointments/rebook/${appointment._id}`;
+    const tpl = templates.noShow({ firstName, rebookUrl });
+
+    if (email) {
+      await sendEmail({ to: email, subject: tpl.subject, html: tpl.emailHtml });
+    }
+
+    let whatsappMessageResult = null;
+        if (phone) {
+            whatsappMessageResult = await sendWhatsAppMessage({ to: phone, message: tpl.whatsappText });
+            if (!whatsappMessageResult.success) {
+                appointment.whatsappReminder = whatsappMessageResult.reason;
+                await appointment.save();
+            }
+        }
 
     await appointment.save();
 
     res.status(200).json({
       message: "Appointment marked as no-show. Refund processed if applicable.",
       appointment,
+      whatsapp: whatsappMessageResult?.reason || 'Message sent successfully'
     });
   } catch (error) {
-      res.status(500).json({ message: error.message });
-    }
+    res.status(500).json({ message: error.message });
+  }
 };
+
 
 /* ---------------------------- Get All Mark No-show Appointments By Admin ---------------------------- */
 
@@ -778,23 +793,32 @@ export const delayAppointment = async (req, res) => {
 
     const { email, phone, firstName = 'User' } = appointment.patientInfo || {};
 
-    const timeMsg = `Your appointment has been delayed by ${delayMinutes} minutes.`;
-    const noteMsg = message ? `Note: ${message}` : '';
-    const fullMsg = `Hi ${firstName},\n${timeMsg}\n${noteMsg}`;
+    const tpl = templates.appointmentDelayed({
+        firstName,
+        delayMinutes,
+        note: message
+    });
 
     if (email) {
-        await sendEmail({
-            to: email,
-            subject: "Appointment Delay Notification",
-            html: `<p>${timeMsg}</p><p>${noteMsg}</p>`
-        });
+    await sendEmail({
+        to: email,
+        subject: tpl.subject,
+        html: tpl.emailHtml
+    });
     }
 
-    if (phone) {
-        await sendWhatsAppMessage({ to: phone, message: fullMsg });
-    }
+    let whatsappMessageResult = null;
+        if (phone) {
+            whatsappMessageResult = await sendWhatsAppMessage({ to: phone, message: tpl.whatsappText });
+            if (!whatsappMessageResult.success) {
+                appointment.whatsappReminder = whatsappMessageResult.reason;
+                await appointment.save();
+            }
+        }
 
-    res.status(200).json({ message: 'Appointment delayed', appointment });
+    res.status(200).json({ message: 'Appointment delayed', appointment,
+        whatsapp: whatsappMessageResult?.reason || 'Message sent successfully'
+     });
 
     } catch (error) {
         res.status(500).json({ message: error.message });

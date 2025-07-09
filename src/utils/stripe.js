@@ -16,8 +16,10 @@ export const createSession = async (payment, appointment) => {
       quantity: 1,
     }],
     mode: 'payment',
-    success_url: `${process.env.FRONTEND_URL}/payment/success`,
-    cancel_url: `${process.env.FRONTEND_URL}/payment/cancel`,
+    // success_url: `${process.env.FRONTEND_URL}/payment/success`,
+    // cancel_url: `${process.env.FRONTEND_URL}/payment/cancel`,
+    success_url: `https://example.com/payment/success`,  
+    cancel_url: `https://example.com/payment/cancel`,
     metadata: {
       paymentId: payment._id.toString()
     }

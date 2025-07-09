@@ -25,6 +25,7 @@ app.post('/webhook/stripe', express.raw({ type: 'application/json' }), stripeWeb
 
 app.use(express.json());
 
+app.use(express.urlencoded({ extended: true }));
 
 /* --------------------------- Run every 15 mins/ reminders (cron) --------------------------- */
 cron.schedule('*/15 * * * *', () => {
