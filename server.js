@@ -1,6 +1,9 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import './DB/models/service.model.js'; 
+import './DB/models/user.model.js'; 
+import './DB/models/booking.model.js'; 
 import { errorHandler } from "./src/middleware/errorHandllingMiddleware.js";
 import db_connection from "./DB/DB-connection.js";
 import AuthRoutes from "./src/modules/Auth/Auth.route.js";
@@ -9,12 +12,34 @@ import doctorInfo from "./src/modules/Doctor/doctor.route.js";
 import services from "./src/modules/Services/services.route.js"
 import category from "./src/modules/serviceCategory/serviceCategory.route.js";
 import searchServices from "./src/modules/Search/search.route.js";
+import cron from 'node-cron';
+import { autoCompleteAppointments } from './src/scheduler/autoCompleteAppointments.js';
+import { sendReminders } from './src/scheduler/sendReminders.js';
+import appointmentInfo from "./src/modules/Appointment/Appointment.route.js";
+import paymentRoutes from './src/modules/Payment/Payment.route.js';
+import { stripeWebhook } from './src/utils/stripeWebhook.js';
 
 dotenv.config();
 
 const app = express();
 app.use(cors());
+
+app.post('/webhook/stripe', express.raw({ type: 'application/json' }), stripeWebhook);
+
 app.use(express.json());
+
+app.use(express.urlencoded({ extended: true }));
+
+/* --------------------------- Run every 15 mins/ reminders (cron) --------------------------- */
+cron.schedule('*/15 * * * *', () => {
+  console.log('⏱️ Running auto-complete appointment task...');
+  autoCompleteAppointments();
+});
+
+cron.schedule('*/10 * * * *', () => {
+  console.log('⏰ Sending appointment reminders...');
+  sendReminders();
+});
 
 /* --------------------------- Connect to MongoDB --------------------------- */
 db_connection();
@@ -25,6 +50,9 @@ app.use("/api/doctor", doctorInfo);
 app.use("/api/services",services)
 app.use("/api/category",category)
 app.use("/api/search", searchServices);
+app.use("/api/appointment", appointmentInfo);
+app.use('/api/payments', paymentRoutes);
+
 
 /* ------------------------ Error Handling from middleWare  ----------------------- */
 app.use(errorHandler);
