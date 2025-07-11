@@ -4,7 +4,8 @@ import { validate,validateParams } from "../../middleware/validationMiddleware.j
 import { servicesSchema, servicesIdSchema,updateServiceSchema } from "./services.validation.js";
 import { isAuth } from "../../middleware/isauthMiddleware.js";
 import { allowRoles } from "../../middleware/checkRole.js";
-import {upload} from "../../middleware/upload.js"
+import {upload} from "../../middleware/upload.js";
+import{cleanBody } from "../../middleware/cleanBodyMiddleware.js"
 const router = express.Router();
 
 router.get("/", serviceController.getAllServices);
@@ -28,6 +29,7 @@ router.put(
   "/:id",
   isAuth,
   allowRoles("admin"),
+  cleanBody,
   validate(updateServiceSchema),
   serviceController.editServaiceById
 );

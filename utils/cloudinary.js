@@ -14,8 +14,16 @@ export const storage = new CloudinaryStorage({
   params: (req, file) => {
     let folderName = "general";
 
+    if (req.body.type === "doctor") {
+    if (file.fieldname === "profileImage") {
+      folderName = "doctors/profileImages";
+    } else if (file.fieldname === "workImages") {
+      folderName = "doctors/workImages";
+    } else {
+      folderName = "doctors/others";
+    }
+    }
     if (req.body.type === "service") folderName = "services";
-    if (req.body.type === "doctor") folderName = "doctors";
     if (req.body.type === "users") folderName = "users";
 
     return {

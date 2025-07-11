@@ -50,7 +50,7 @@ export const getAllServices = async (req, res, next) => {
             sortBy,
             order = "desc",
             page = 1,
-            limit = 12,
+            limit = 4,
         } = req.query;
 
         let filter = {};
@@ -87,6 +87,15 @@ export const getAllServices = async (req, res, next) => {
             .skip(Number(skip))
             .limit(Number(limit));
 
+        const formattedServices = allServices.map((service) => ({
+            _id: service._id,
+            name: service.name,
+            image: service.image,
+            price: service.price,
+            description: service.description,
+            category: service.category?.name,
+        }));
+
         const total = await Service.countDocuments(filter);
 
         res.status(200).json({
@@ -94,7 +103,7 @@ export const getAllServices = async (req, res, next) => {
             total,
             page: Number(page),
             results: allServices.length,
-            services: allServices,
+            services: formattedServices,
         });
     } catch (err) {
         next(err)
@@ -105,15 +114,25 @@ export const getAllServices = async (req, res, next) => {
 /* ---------------------------- Get Service by ID ---------------------------- */
 export const getServiceById = async (req, res, next) => {
     try {
-        const ServiceById = await Service.findById(req.params.id)
+        const service = await Service.findById(req.params.id)
             .populate("category", "name")
-            .populate("doctors", "name specialization");
+            .populate("doctors", "name");
 
-        if (!ServiceById) {
+        if (!service) {
             return res.status(404).json({ message: "Service not found" })
         }
 
-        res.status(200).json(ServiceById);
+        const simplifiedDoctors = service.doctors.map((doctor) => ({
+            _id: doctor._id,
+            name: doctor.name,
+        }));
+
+        const serviceData = {
+            ...service._doc,
+            doctors: simplifiedDoctors,
+        };
+
+        res.status(200).json(serviceData);
     } catch (err) {
         next(err)
     }
@@ -153,13 +172,13 @@ export const editServaiceById = async (req, res, next) => {
         }
 
         if (req.file) {
-      updatedData.image = req.file.path;
+            updatedData.image = req.file.path;
 
-      if (oldService.image) {
-        const publicId = extractPublicId(oldService.image);
-        await cloudinary.uploader.destroy(publicId);
-      }
-    }
+            if (oldService.image) {
+                const publicId = extractPublicId(oldService.image);
+                await cloudinary.uploader.destroy(publicId);
+            }
+        }
 
         const updatedService = await Service.findByIdAndUpdate(
             req.params.id,
@@ -181,9 +200,9 @@ export const deleteServiceById = async (req, res, next) => {
             return res.status(400).json({ message: "Service not found" });
         }
         if (deleteService.image) {
-      const publicId = extractPublicId(deleteService.image);
-      await cloudinary.uploader.destroy(publicId);
-    }
+            const publicId = extractPublicId(deleteService.image);
+            await cloudinary.uploader.destroy(publicId);
+        }
 
         res.status(200).json(deleteService);
 
