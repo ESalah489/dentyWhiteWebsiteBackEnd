@@ -1,4 +1,24 @@
 import Joi from "joi";
+
+/* -------------------------- create user by admin -------------------------- */
+export const createUserSchema = Joi.object({
+  firstName: Joi.string().trim().lowercase().required(),
+  lastName: Joi.string().trim().lowercase().required(),
+  email: Joi.string().email().trim().lowercase().required(),
+  password: Joi.string().min(6).required(),
+  image: Joi.string().uri().optional(),
+  role: Joi.string().valid("client", "doctor", "admin").optional(),
+  phone: Joi.string().optional(),
+  address: Joi.object({
+    city: Joi.string().trim().lowercase().required(),
+    street: Joi.string().trim().lowercase().required(),
+    country: Joi.string().trim().lowercase().required(),
+    postalCode: Joi.string().trim().lowercase().required(),
+  }).optional(),
+  age: Joi.number().integer().min(0).optional(),
+  clientWork: Joi.string().optional(),
+});
+
 /* ------------------------- update user information ------------------------ */
 export const updateUserSchema = Joi.object({
   firstName: Joi.string().min(2).max(50).optional().messages({
