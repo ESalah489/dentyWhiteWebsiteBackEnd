@@ -1,31 +1,53 @@
 import express from "express";
-import {
-  getDoctorById,
-  editDoctorById,
-  deleteDoctorById,
-  getAllDoctors,
-} from "../Doctor/doctor.controller.js";
+import *as doctorController from "./doctor.controller.js";
+import { validate,validateParams } from "../../middleware/validationMiddleware.js";
+import {DoctorSchema,editDoctorSchema,doctorIdSchema} from "./doctor.validation.js";
 import { isAuth } from "../../middleware/isauthMiddleware.js";
 import { allowRoles } from "../../middleware/checkRole.js";
-import {
-  validate,
-  validateParams,
-} from "../../middleware/validationMiddleware.js";
-import { editDoctorSchema, deleteDoctorSchema } from "./doctor.validation.js";
+import{cleanBody } from "../../middleware/cleanBodyMiddleware.js";
+import {upload} from "../../middleware/upload.js";
+import {parseDoctorFields} from "../../middleware/fieldsToParse.js";
+
 const router = express.Router();
 
-router.get("/:id", isAuth, getDoctorById);
+router.get("/",doctorController.getAllDoctors);
 
-router.put("/:id", isAuth, validate(editDoctorSchema), editDoctorById);
-
-router.delete(
-  "/:id",
-  isAuth,
-  allowRoles("admin"),
-  validateParams(deleteDoctorSchema),
-  deleteDoctorById
+router.get("/:id",
+  validateParams(doctorIdSchema),
+  doctorController.getDoctorById
 );
 
-router.get("/", isAuth, allowRoles("admin"), getAllDoctors);
+router.post("/",
+  isAuth,
+  allowRoles("admin"),
+upload.fields([
+     { name: "profileImage", maxCount: 1 },
+     { name: "workImages", maxCount: 5 },
+  ]), 
+   parseDoctorFields,
+   validate(DoctorSchema),
+  doctorController.createDoctor
+);
+
+router.put("/:id",
+  isAuth,
+  allowRoles("admin"),
+  upload.fields([
+    { name: "profileImage", maxCount: 1 },
+    { name: "workImages", maxCount: 5 },
+  ]),
+  cleanBody,
+  parseDoctorFields,
+  validateParams(doctorIdSchema),
+  validate(editDoctorSchema),
+  doctorController.editDoctorById
+);
+
+router.delete("/:id",
+  isAuth,
+  allowRoles("admin"),
+  validateParams(doctorIdSchema),
+  doctorController.deleteDoctorById
+);
 
 export default router;

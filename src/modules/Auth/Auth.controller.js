@@ -2,8 +2,9 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import User from "../../../DB/models/user.model.js";
 import nodemailer from "nodemailer";
-
+import Address from "../../../DB/models/Address.model.js";
 /* -------------------------------- Register -------------------------------- */
+
 export const register = async (req, res, next) => {
   try {
     const { firstName, lastName, email, password, phone, address, age } =
@@ -16,13 +17,15 @@ export const register = async (req, res, next) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    const savedAddress = await Address.create(address);
+
     const newUser = new User({
       firstName,
       lastName,
       email,
       password: hashedPassword,
       phone,
-      address,
+      address: savedAddress._id,
       age,
     });
 
@@ -101,7 +104,7 @@ export const forgetPassword = async (req, res, next) => {
       { expiresIn: "15m" }
     );
 
-    const resetLink = `http://localhost:3000/reset-password/${token}`;
+    const resetLink = `http://localhost:5173/resetpassword/${token}`;
 
     const transporter = nodemailer.createTransport({
       service: "gmail",

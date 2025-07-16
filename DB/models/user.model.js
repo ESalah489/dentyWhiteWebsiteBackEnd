@@ -27,20 +27,8 @@ const userSchema = new Schema(
     },
     phone: { type: String, trim: true, lowercase: true },
     address: {
-      city: { type: String, trim: true, lowercase: true, default: "City" },
-      street: { type: String, trim: true, lowercase: true, default: "street" },
-      country: {
-        type: String,
-        trim: true,
-        lowercase: true,
-        default: "country",
-      },
-      postalCode: {
-        type: String,
-        trim: true,
-        lowercase: true,
-        default: "postalCode",
-      },
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Address",
     },
     age: {
       type: Number,

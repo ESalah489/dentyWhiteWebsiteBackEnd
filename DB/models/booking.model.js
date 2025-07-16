@@ -138,3 +138,4 @@ appointmentSchema.index({
 
 const Appointment = mongoose.model("Appointment", appointmentSchema);
 export default Appointment;
+
