@@ -10,12 +10,17 @@ import {parseDoctorFields} from "../../middleware/fieldsToParse.js";
 
 const router = express.Router();
 
-router.get("/",doctorController.getAllDoctors);
+router.get("/",
+  doctorController.getAllDoctors);
+
+router.get("/specializations",
+  doctorController.getAllSpecializations);
 
 router.get("/:id",
   validateParams(doctorIdSchema),
   doctorController.getDoctorById
 );
+
 
 router.post("/",
   isAuth,
