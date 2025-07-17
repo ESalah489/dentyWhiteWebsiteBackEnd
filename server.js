@@ -18,6 +18,7 @@ import { sendReminders } from './src/scheduler/sendReminders.js';
 import appointmentInfo from "./src/modules/Appointment/Appointment.route.js";
 import paymentRoutes from './src/modules/Payment/Payment.route.js';
 import { stripeWebhook } from './src/utils/stripeWebhook.js';
+import statsRoutes from "./src/modules/Stats/Stats.route.js";
 
 dotenv.config();
 
@@ -55,6 +56,7 @@ app.use("/api/category",category)
 app.use("/api/search", searchServices);
 app.use("/api/appointment", appointmentInfo);
 app.use('/api/payments', paymentRoutes);
+app.use("/api/stats", statsRoutes);
 
 
 /* ------------------------ Error Handling from middleWare  ----------------------- */
