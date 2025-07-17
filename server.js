@@ -18,6 +18,11 @@ import { sendReminders } from './src/scheduler/sendReminders.js';
 import appointmentInfo from "./src/modules/Appointment/Appointment.route.js";
 import paymentRoutes from './src/modules/Payment/Payment.route.js';
 import { stripeWebhook } from './src/utils/stripeWebhook.js';
+import reviewRoutes from "./src/modules/review/review.routes.js";
+
+import * as reviewController from "./src/modules/review/review.controller.js"
+
+
 
 dotenv.config();
 
@@ -57,6 +62,7 @@ app.use("/api/appointment", appointmentInfo);
 app.use('/api/payments', paymentRoutes);
 
 
+app.use("/api/review", reviewRoutes);
 /* ------------------------ Error Handling from middleWare  ----------------------- */
 app.use(errorHandler);
 
