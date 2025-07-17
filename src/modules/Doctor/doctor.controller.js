@@ -116,9 +116,6 @@ export const getDoctorById = async (req, res, next) => {
     const doctorData = {
       ...doctor._doc,
       fullName: `${doctor.user.firstName} ${doctor.user.lastName}`,
-      profileImage: doctor.profileImage,
-      workImages: doctor.workImages,
-      services: doctor.services,
     };
 
     delete doctorData.user;
@@ -129,7 +126,6 @@ export const getDoctorById = async (req, res, next) => {
   }
 };
 
-/* ---------------------------- Get All Doctors  ---------------------------- */
 export const getAllDoctors = async (req, res, next) => {
   try {
     const {
@@ -193,6 +189,7 @@ export const getAllDoctors = async (req, res, next) => {
         _id: doc._id,
         fullName: `${doc.user.firstName} ${doc.user.lastName}`,
         specialization: doc.specialization,
+        experience:doc.experience,
         averageRating: doc.averageRating,
         profileImage: doc.profileImage,
       }));
@@ -209,7 +206,6 @@ export const getAllDoctors = async (req, res, next) => {
     next(error);
   }
 };
-
 
 /* ---------------------------- Edit Doctor by ID --------------------------- */
 
@@ -304,5 +300,17 @@ export const deleteDoctorById = async (req, res, next) => {
     res.status(200).json({ message: "Doctor and related reviews deleted successfully", doctor });
   } catch (error) {
     next(error);
+  }
+};
+
+/* --------------------------- Get All Specializations -------------------------- */
+
+export const getAllSpecializations = async (req, res, next) => {
+  try {
+    const specializations = await Doctor.distinct("specialization");
+    res.status(200).json(specializations);
+  } catch (err) {
+      console.error("Error in getAllSpecializations:", err);
+    next(err);
   }
 };

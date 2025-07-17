@@ -71,13 +71,16 @@ export const getAllServices = async (req, res, next) => {
             filter.sessions = { $regex: sessions, $options: "i" };
         }
 
-        if (sortBy) {
-            sort = {};
-            sort[sortBy] = order === "asc" ? 1 : -1;
+       if (sortBy) {
+            const validSortFields = ["createdAt", "price", "name"]; 
+            if (validSortFields.includes(sortBy)) {
+                sort = {};
+                sort[sortBy] = order === "asc" ? 1 : -1;
+            }
         }
 
-        const limitNum = Number(limit) || 12;
-        const pageNum = Number(page) || 1;
+        const limitNum = Number(limit);
+        const pageNum = Number(page);
         const skip = (pageNum - 1) * limitNum;
 
         const allServices = await Service.find(filter)
@@ -113,29 +116,39 @@ export const getAllServices = async (req, res, next) => {
 
 /* ---------------------------- Get Service by ID ---------------------------- */
 export const getServiceById = async (req, res, next) => {
-    try {
-        const service = await Service.findById(req.params.id)
-            .populate("category", "name")
-            .populate("doctors", "name");
-
-        if (!service) {
-            return res.status(404).json({ message: "Service not found" })
+  try {
+    const service = await Service.findById(req.params.id)
+      .populate({
+        path: "doctors",
+        select: "user specialization profileImage averageRating", 
+        populate: {
+          path: "user",
+          select: "firstName lastName"
         }
+      })
+      .populate("category", "name");
 
-        const simplifiedDoctors = service.doctors.map((doctor) => ({
-            _id: doctor._id,
-            name: doctor.name,
-        }));
-
-        const serviceData = {
-            ...service._doc,
-            doctors: simplifiedDoctors,
-        };
-
-        res.status(200).json(serviceData);
-    } catch (err) {
-        next(err)
+    if (!service) {
+      return res.status(404).json({ message: "Service not found" });
     }
+
+    const formattedDoctors = service.doctors.map((doctor) => ({
+      _id: doctor._id,
+      fullName: `${doctor.user.firstName} ${doctor.user.lastName}`,
+      specialization: doctor.specialization,
+      profileImage: doctor.profileImage,
+      averageRating: doctor.averageRating,
+    }));
+
+    const serviceData = {
+      ...service._doc,
+      doctors: formattedDoctors,
+    };
+
+    res.status(200).json(serviceData);
+  } catch (err) {
+    next(err);
+  }
 };
 
 /* ---------------------------- Edit Service by ID ---------------------------- */

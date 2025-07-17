@@ -10,26 +10,26 @@ cloudinary.config({
 });
 
 export const storage = new CloudinaryStorage({
-   cloudinary,
+  cloudinary,
   params: (req, file) => {
     let folderName = "general";
 
     if (req.body.type === "doctor") {
-    if (file.fieldname === "profileImage") {
-      folderName = "doctors/profileImages";
-    } else if (file.fieldname === "workImages") {
-      folderName = "doctors/workImages";
-    } else {
-      folderName = "doctors/others";
-    }
+      if (file.fieldname === "profileImage") {
+        folderName = "doctors/profileImages";
+      } else if (file.fieldname === "workImages") {
+        folderName = "doctors/workImages";
+      } else {
+        folderName = "doctors/others";
+      }
     }
     if (req.body.type === "service") folderName = "services";
     if (req.body.type === "users") folderName = "users";
 
     return {
       folder: folderName,
-    allowed_formats: ["jpg", "png", "jpeg", "webp"],
-    transformation: [{ width: 500, height: 500, crop: "limit" }],
+      allowed_formats: ["jpg", "png", "jpeg", "webp"],
+      transformation: [{ width: 500, height: 500, crop: "limit" }],
     };
   },
 });

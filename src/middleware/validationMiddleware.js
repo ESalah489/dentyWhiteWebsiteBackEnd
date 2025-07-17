@@ -21,11 +21,16 @@ export const validateParams = (schema) => (req, res, next) => {
 };
 
 export const validateQuery = (schema) => (req, res, next) => {
-  const { error } = schema.validate(req.query, { abortEarly: false });
+  const { error, value } = schema.validate(req.query, {
+    abortEarly: false,
+    convert: true,
+  });
+
   if (error) {
     const errors = error.details.map((d) => d.message);
     return res.status(400).json({ errors });
   }
+
+  req.validatedQuery = value;
   next();
 };
-
