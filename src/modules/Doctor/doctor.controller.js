@@ -126,6 +126,7 @@ export const getDoctorById = async (req, res, next) => {
     next(error);
   }
 };
+/* ---------------------------- Get All Doctor ---------------------------- */
 
 export const getAllDoctors = async (req, res, next) => {
   try {
@@ -175,11 +176,17 @@ export const getAllDoctors = async (req, res, next) => {
     const skip = (pageNum - 1) * limitNum;
 
     const allDoctors = await Doctor.find(filter)
-      .populate({
-        path: "user",
-        match: { role: "doctor" },
-        select: "firstName lastName",
-      })
+      .populate([
+        {
+          path: "user",
+          match: { role: "doctor" },
+          select: "firstName lastName",
+        },
+        {
+          path: "services",
+          select: "name description",
+        },
+      ])
       .sort(sort)
       .skip(skip)
       .limit(limitNum);
@@ -190,12 +197,16 @@ export const getAllDoctors = async (req, res, next) => {
         _id: doc._id,
         fullName: `${doc.user.firstName} ${doc.user.lastName}`,
         specialization: doc.specialization,
-        experience:doc.experience,
+        experience: doc.experience,
         averageRating: doc.averageRating,
         profileImage: doc.profileImage,
+        certifications: doc.certifications,
+        bio: doc.bio,
+        services: doc.services,
+        workImages: doc.workImages,
       }));
-    const total = await Doctor.countDocuments(filter);
 
+    const total = await Doctor.countDocuments(filter);
     res.status(200).json({
       message: "Doctors fetched successfully",
       total,
@@ -214,10 +225,6 @@ export const editDoctorById = async (req, res, next) => {
   try {
     const doctorId = req.params.id;
     const updatedData = { ...req.body };
-    console.log("✅ req.body:", req.body);
-    console.log("✅ req.file (profileImage):", req.file);
-    console.log("✅ req.files (workImages):", req.files);
-
     const oldDoctor = await Doctor.findById(doctorId);
     if (!oldDoctor) {
       return res.status(404).json({ message: "Doctor not found" });
@@ -316,7 +323,7 @@ export const getAllSpecializations = async (req, res, next) => {
     const specializations = await Doctor.distinct("specialization");
     res.status(200).json(specializations);
   } catch (err) {
-      console.error("Error in getAllSpecializations:", err);
+    console.error("Error in getAllSpecializations:", err);
     next(err);
   }
 };
