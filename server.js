@@ -19,7 +19,8 @@ import appointmentInfo from "./src/modules/Appointment/Appointment.route.js";
 import paymentRoutes from './src/modules/Payment/Payment.route.js';
 import { stripeWebhook } from './src/utils/stripeWebhook.js';
 import statsRoutes from "./src/modules/Stats/Stats.route.js";
-
+import reviewRoutes from "./src/modules/review/review.routes.js";
+import * as reviewController from "./src/modules/review/review.controller.js";
 dotenv.config();
 
 const app = express();
@@ -59,6 +60,7 @@ app.use('/api/payments', paymentRoutes);
 app.use("/api/stats", statsRoutes);
 
 
+app.use("/api/review", reviewRoutes);
 /* ------------------------ Error Handling from middleWare  ----------------------- */
 app.use(errorHandler);
 
