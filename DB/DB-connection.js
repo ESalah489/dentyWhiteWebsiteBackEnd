@@ -11,6 +11,7 @@ const db_connection = async () => {
   }
 
   try {
+    console.log("🧪 Connecting to Mongo URI:", uri);
     await mongoose.connect(uri);
     mongoose.connection.once("open", () => {
         console.log("Connected to DB:", mongoose.connection.name);
