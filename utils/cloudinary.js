@@ -25,6 +25,7 @@ export const storage = new CloudinaryStorage({
     }
     if (req.body.type === "service") folderName = "services";
     if (req.body.type === "users") folderName = "users";
+    if (req.body.type === "gallery") folderName = "gallery";
 
     return {
       folder: folderName,
