@@ -126,6 +126,8 @@ export const getDoctorById = async (req, res, next) => {
   }
 };
 
+/* ---------------------------- Get all Doctors --------------------------- */
+
 export const getAllDoctors = async (req, res, next) => {
   try {
     const {
@@ -144,65 +146,40 @@ export const getAllDoctors = async (req, res, next) => {
     const filter = {};
     let sort = { createdAt: -1 };
 
-    if (service) {
-      const serviceArray = service.split(",");
-      filter.services = { $in: serviceArray };
-    }
-
-    if (specialization) {
-      const specializationArray = specialization.split(",");
-      filter.specialization = { $in: specializationArray };
-    }
-
+    if (service) filter.services = { $in: service.split(",") };
+    if (specialization) filter.specialization = { $in: specialization.split(",") };
     if (minRating || maxRating) {
       filter.averageRating = {};
       if (minRating) filter.averageRating.$gte = Number(minRating);
       if (maxRating) filter.averageRating.$lte = Number(maxRating);
     }
 
-    if (topRated === "true") {
-      sort = { averageRating: -1 };
-    } else if (lowestRated === "true") {
-      sort = { averageRating: 1 };
-    } else if (sortBy) {
-      sort = {};
-      sort[sortBy] = order === "asc" ? 1 : -1;
-    }
+    if (topRated === "true") sort = { averageRating: -1 };
+    else if (lowestRated === "true") sort = { averageRating: 1 };
+    else if (sortBy) sort = { [sortBy]: order === "asc" ? 1 : -1 };
 
-    const limitNum = Number(limit);
-    const pageNum = Number(page);
-    const skip = (pageNum - 1) * limitNum;
-
-    const allDoctors = await Doctor.find(filter)
+    const doctors = await Doctor.find(filter)
       .populate({
         path: "user",
         match: { role: "doctor" },
-        select: "firstName lastName",
+        select: "-password -__v",
       })
       .sort(sort)
-      .skip(skip)
-      .limit(limitNum);
+      .skip((page - 1) * limit)
+      .limit(Number(limit));
 
-    const filteredDoctors = allDoctors
-      .filter((doc) => doc.user)
-      .map((doc) => ({
-        _id: doc._id,
-        fullName: `${doc.user.firstName} ${doc.user.lastName}`,
-        specialization: doc.specialization,
-        experience:doc.experience,
-        averageRating: doc.averageRating,
-        profileImage: doc.profileImage,
-      }));
-    const total = await Doctor.countDocuments(filter);
-
-    res.status(200).json({
-      message: "Doctors fetched successfully",
-      total,
-      page: pageNum,
-      results: filteredDoctors.length,
-      doctors: filteredDoctors,
-    });
-  } catch (error) {
+      res.status(200).json({
+  message: "Doctors fetched successfully",
+  total: await Doctor.countDocuments(filter),
+  page: Number(page),
+  results: doctors.filter((d) => d.user).length,
+  doctors: doctors
+    .filter((d) => d.user)
+    .map((doc) => ({
+      ...doc.toObject(),
+      fullName: `${doc.user.firstName} ${doc.user.lastName}`,
+    })),
+});} catch (error) {
     next(error);
   }
 };

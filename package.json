@@ -18,6 +18,7 @@
     "cloudinary": "^1.41.3",
     "cors": "^2.8.5",
     "dotenv": "^16.6.1",
+    "expres": "^0.0.5",
     "express": "^5.1.0",
     "joi": "^17.13.3",
     "jsonwebtoken": "^9.0.2",
