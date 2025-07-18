@@ -8,10 +8,15 @@ const doctorSchema = new Schema(
       required: true,
       unique: true,
     },
+    profileImage:{ type: String ,},
     specialization: [{ type: String, required: true, trim: true }],
     experience: { type: Number, required: true },
-    certifications: [{ type: String }],
-    bio: { type: String },
+    certifications: [{ type: String ,required: true}],
+    bio: { type: String,required: true },
+    services: [{ type: mongoose.Schema.Types.ObjectId, ref: "Service" }],
+    workImages: [{ type: String,required: true }],
+    averageRating: { type: Number, default: 0 },
+    numberOfReviews: { type: Number, default: 0 },
     availableTimes: [
       {
         day: { type: String, required: true },

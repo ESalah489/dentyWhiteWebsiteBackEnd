@@ -40,19 +40,19 @@ export const createOrder = async (payment, appointment) => {
         },
         description: appointment.service.name
       }],
-      // application_context: {
-      //   return_url: `${process.env.FRONTEND_URL}/payment/success`,
-      //   cancel_url: `${process.env.FRONTEND_URL}/payment/cancel`
-      // }
       application_context: {
-        brand_name: "Clinic Appointments",
-        landing_page: "LOGIN",
-        user_action: "PAY_NOW",
+        return_url: `${process.env.FRONTEND_URL}/payment/success/?paymentId=${payment._id}`,
+        cancel_url: `${process.env.FRONTEND_URL}/payment/failure`
+      }
+      // application_context: {
+      //   brand_name: "Clinic Appointments",
+      //   landing_page: "LOGIN",
+      //   user_action: "PAY_NOW",
         // return_url: `${process.env.FRONTEND_URL}/payment/success`,
         // cancel_url: `${process.env.FRONTEND_URL}/payment/cancel`
-        return_url: `https://google.com/?orderId=${payment._id}`,
-        cancel_url: "https://example.com/cancel"
-      }
+      //   return_url: `https://google.com/?orderId=${payment._id}`,
+      //   cancel_url: "https://example.com/cancel"
+      // }
 
     },
     {

@@ -1,6 +1,61 @@
 import User from "../../../DB/models/user.model.js";
 import Address from "../../../DB/models/Address.model.js";
+import bcrypt from "bcryptjs";
+/* -------------------------- create user by admin -------------------------- */
+export const createUser = async (req, res, next) => {
+  try {
+    const {
+      firstName,
+      lastName,
+      email,
+      password,
+      image,
+      role,
+      phone,
+      address,
+      age,
+      clientWork,
+    } = req.body;
 
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(409).json({ message: "Email already in use" });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    let addressId = undefined;
+    if (address) {
+      const newAddress = new Address(address);
+      await newAddress.save();
+      addressId = newAddress._id;
+    }
+
+    const newUser = new User({
+      firstName,
+      lastName,
+      email,
+      image,
+      password: hashedPassword,
+      role,
+      phone,
+      address: addressId,
+      age,
+      clientWork,
+    });
+
+    await newUser.save();
+
+    const { password: _, ...userWithoutPassword } = newUser.toObject();
+
+    res.status(201).json({
+      message: "User created successfully",
+      user: userWithoutPassword,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 /* ---------------------------- Get User by ID ---------------------------- */
 
 export const getUserById = async (req, res, next) => {

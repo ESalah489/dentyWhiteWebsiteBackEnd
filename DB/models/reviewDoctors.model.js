@@ -9,4 +9,5 @@ const reviewDoctorsSchema = new Schema(
   { timestamps: true }
 );
 
-module.exports = mongoose.model("ReviewDoctors", reviewDoctorsSchema);
+const ReviewDoctors = mongoose.model("ReviewDoctors", reviewDoctorsSchema);
+export default ReviewDoctors;

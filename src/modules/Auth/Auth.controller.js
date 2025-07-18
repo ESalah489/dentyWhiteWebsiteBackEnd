@@ -25,7 +25,7 @@ export const register = async (req, res, next) => {
       email,
       password: hashedPassword,
       phone,
-      address: savedAddress._id, // هنا نربط عنوان المستخدم
+      address: savedAddress._id,
       age,
     });
 
@@ -104,7 +104,7 @@ export const forgetPassword = async (req, res, next) => {
       { expiresIn: "15m" }
     );
 
-    const resetLink = `http://localhost:3000/reset-password/${token}`;
+    const resetLink = `http://localhost:5173/resetpassword/${token}`;
 
     const transporter = nodemailer.createTransport({
       service: "gmail",

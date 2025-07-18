@@ -69,6 +69,9 @@ export const updateServiceSchema = Joi.object({
     Joi.string().custom(isValidObjectId).messages({ "any.invalid": "Invalid doctor ID" })
   ),
   category: Joi.string().custom(isValidObjectId).messages({ "any.invalid": "Invalid category ID" }),
+  type: Joi.string()
+    .valid("service", "doctor", "users")
+    .optional(),
 });
 
 

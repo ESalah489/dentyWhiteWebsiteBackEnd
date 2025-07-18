@@ -18,6 +18,9 @@ router.get ('/slots',isAuth,
     appointmentController.getSlotsStatus
 )
 
+router.get("/my", isAuth, 
+    appointmentController.getMyAppointments);
+
 router.patch ('/confirm/:id',isAuth, 
     allowRoles('admin'),
     appointmentController.confirmAppointment
@@ -35,6 +38,10 @@ router.get ('/',isAuth,
 
 router.get ('/user/:userId',isAuth,
     appointmentController.getUserAppointments
+)
+
+router.get("/:id/allow-payment", isAuth, 
+    appointmentController.allowPayment
 )
 
 router.patch ('/reschedule/:id',isAuth, 
