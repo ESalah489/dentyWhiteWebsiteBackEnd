@@ -146,16 +146,8 @@ export const getAllDoctors = async (req, res, next) => {
     const filter = {};
     let sort = { createdAt: -1 };
 
-    if (service) {
-      const serviceArray = service.split(",");
-      filter.services = { $in: serviceArray };
-    }
-
-    if (specialization) {
-      const specializationArray = specialization.split(",");
-      filter.specialization = { $in: specializationArray };
-    }
-
+    if (service) filter.services = { $in: service.split(",") };
+    if (specialization) filter.specialization = { $in: specialization.split(",") };
     if (minRating || maxRating) {
       filter.averageRating = {};
       if (minRating) filter.averageRating.$gte = Number(minRating);
