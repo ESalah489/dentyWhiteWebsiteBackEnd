@@ -1,5 +1,5 @@
 import Category from "../../../DB/models/serviceCategory.model.js";
-
+import Service from "../../../DB/models/service.model.js";
 /* ---------------------------- Create Category ---------------------------- */
 export const createServiceCategory = async (req, res, next) => {
   try {
@@ -28,14 +28,24 @@ export const getServicesCategory = async (req, res, next) => {
 };
 
 /* ------------------------ Get Category by ID ------------------------ */
+
 export const getServiceCategoryById = async (req, res, next) => {
   try {
-    const getServiceCategory = await Category.findById(req.params.id);
+    const categoryId = req.params.id;
+
+    const getServiceCategory = await Category.findById(categoryId);
     if (!getServiceCategory) {
       return res.status(404).json({ message: "Category not found" });
     }
 
-    res.status(200).json(getServiceCategory);
+    const services = await Service.find({ category: categoryId })
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      category: getServiceCategory.name,
+      total: services.length,
+      services,
+    });
   } catch (err) {
     next(err);
   }

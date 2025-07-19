@@ -24,9 +24,10 @@ export const createDoctor = async (req, res, next) => {
     }
 
     if (user.role !== "doctor") {
-      return res
-        .status(400)
-        .json({ message: "Cannot create doctor profile. Please assign this user the 'doctor' role first." });
+      return res.status(400).json({
+        message:
+          "Cannot create doctor profile. Please assign this user the 'doctor' role first.",
+      });
     }
 
     const existingDoctor = await Doctor.findOne({ user: userId });
@@ -36,7 +37,7 @@ export const createDoctor = async (req, res, next) => {
         .json({ message: "Doctor already exists for this user" });
     }
 
-let finalProfileImage ;
+    let finalProfileImage;
 
     const defaultImage =
       "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png";
@@ -52,17 +53,16 @@ let finalProfileImage ;
     } else if (adminUploadedImage) {
       finalProfileImage = adminUploadedImage;
     } else {
-      return res
-        .status(400)
-        .json({ message: "Doctor profile image is required (either from user or admin)" });
+      return res.status(400).json({
+        message: "Doctor profile image is required (either from user or admin)",
+      });
     }
 
-if (!req.files?.workImages || req.files.workImages.length === 0) {
-  return res.status(400).json({ message: "Work images are required" });
-}
+    if (!req.files?.workImages || req.files.workImages.length === 0) {
+      return res.status(400).json({ message: "Work images are required" });
+    }
 
-const workImages = req.files.workImages.map((file) => file.path);
-
+    const workImages = req.files.workImages.map((file) => file.path);
 
     const doctor = new Doctor({
       user: userId,
@@ -71,7 +71,7 @@ const workImages = req.files.workImages.map((file) => file.path);
       certifications,
       bio,
       availableTimes,
-      profileImage:finalProfileImage,
+      profileImage: finalProfileImage,
       workImages,
       services,
     });
@@ -93,43 +93,41 @@ export const getDoctorById = async (req, res, next) => {
     const doctorId = req.params.id;
 
     const doctor = await Doctor.findById(doctorId)
-    .populate({
-      path: "user",
-      // match: { role: "doctor" },
-      select: "firstName lastName ",
-     
-    })
+      .populate({
+        path: "user",
+        // match: { role: "doctor" },
+        select: "firstName lastName ",
+      })
       .populate({
         path: "services",
         select: "name price image description category",
         populate: {
           path: "category",
-          select: "name", 
+          select: "name",
         },
       });
     if (!doctor || !doctor.user) {
       return res.status(404).json({ message: "Doctor not found" });
     }
-     const reviews = await ReviewDoctors.find({ doctor: doctorId  }).populate("user", "name");
-     
-     
+    const reviews = await ReviewDoctors.find({ doctor: doctorId }).populate(
+      "user",
+      "name"
+    );
+
     const doctorData = {
       ...doctor._doc,
       fullName: `${doctor.user.firstName} ${doctor.user.lastName}`,
-      profileImage: doctor.profileImage,
-      workImages: doctor.workImages,
-      services: doctor.services,
     };
 
     delete doctorData.user;
 
-    res.status(200).json({ doctor: doctorData,reviews});
+    res.status(200).json({ doctor: doctorData, reviews });
   } catch (error) {
     next(error);
   }
 };
+/* ---------------------------- Get All Doctor ---------------------------- */
 
-/* ---------------------------- Get All Doctors  ---------------------------- */
 export const getAllDoctors = async (req, res, next) => {
   try {
     const {
@@ -148,16 +146,8 @@ export const getAllDoctors = async (req, res, next) => {
     const filter = {};
     let sort = { createdAt: -1 };
 
-    if (service) {
-      const serviceArray = service.split(",");
-      filter.services = { $in: serviceArray };
-    }
-
-    if (specialization) {
-      const specializationArray = specialization.split(",");
-      filter.specialization = { $in: specializationArray };
-    }
-
+    if (service) filter.services = { $in: service.split(",") };
+    if (specialization) filter.specialization = { $in: specialization.split(",") };
     if (minRating || maxRating) {
       filter.averageRating = {};
       if (minRating) filter.averageRating.$gte = Number(minRating);
@@ -178,11 +168,17 @@ export const getAllDoctors = async (req, res, next) => {
     const skip = (pageNum - 1) * limitNum;
 
     const allDoctors = await Doctor.find(filter)
-      .populate({
-        path: "user",
-        match: { role: "doctor" },
-        select: "firstName lastName",
-      })
+      .populate([
+        {
+          path: "user",
+          match: { role: "doctor" },
+          select: "firstName lastName",
+        },
+        {
+          path: "services",
+          select: "name description",
+        },
+      ])
       .sort(sort)
       .skip(skip)
       .limit(limitNum);
@@ -193,11 +189,16 @@ export const getAllDoctors = async (req, res, next) => {
         _id: doc._id,
         fullName: `${doc.user.firstName} ${doc.user.lastName}`,
         specialization: doc.specialization,
+        experience: doc.experience,
         averageRating: doc.averageRating,
         profileImage: doc.profileImage,
+        certifications: doc.certifications,
+        bio: doc.bio,
+        services: doc.services,
+        workImages: doc.workImages,
       }));
-    const total = await Doctor.countDocuments(filter);
 
+    const total = await Doctor.countDocuments(filter);
     res.status(200).json({
       message: "Doctors fetched successfully",
       total,
@@ -210,17 +211,12 @@ export const getAllDoctors = async (req, res, next) => {
   }
 };
 
-
 /* ---------------------------- Edit Doctor by ID --------------------------- */
 
 export const editDoctorById = async (req, res, next) => {
   try {
     const doctorId = req.params.id;
     const updatedData = { ...req.body };
-    console.log("✅ req.body:", req.body);
-    console.log("✅ req.file (profileImage):", req.file);
-    console.log("✅ req.files (workImages):", req.files);
-
     const oldDoctor = await Doctor.findById(doctorId);
     if (!oldDoctor) {
       return res.status(404).json({ message: "Doctor not found" });
@@ -230,21 +226,22 @@ export const editDoctorById = async (req, res, next) => {
       for (const serviceId of updatedData.services) {
         const service = await Service.findById(serviceId);
         if (!service) {
-          return res.status(400).json({ message: `Invalid service ID: ${serviceId}` });
+          return res
+            .status(400)
+            .json({ message: `Invalid service ID: ${serviceId}` });
         }
       }
     }
 
     if (req.files?.profileImage?.length > 0) {
-       updatedData.profileImage = req.files.profileImage[0].path;
-        
+      updatedData.profileImage = req.files.profileImage[0].path;
 
       if (oldDoctor.profileImage) {
         const publicId = extractPublicId(oldDoctor.profileImage);
         await cloudinary.uploader.destroy(publicId);
       }
-    }else {
-       updatedData.profileImage = oldDoctor.profileImage;
+    } else {
+      updatedData.profileImage = oldDoctor.profileImage;
     }
 
     if (req.files?.workImages?.length > 0) {
@@ -258,11 +255,14 @@ export const editDoctorById = async (req, res, next) => {
       updatedData.workImages = req.files.workImages.map((file) => file.path);
     }
 
-    const updatedDoctor = await Doctor.findByIdAndUpdate(doctorId, updatedData, {
-      new: true,
-      runValidators: true,
-    })
-    .populate("services");
+    const updatedDoctor = await Doctor.findByIdAndUpdate(
+      doctorId,
+      updatedData,
+      {
+        new: true,
+        runValidators: true,
+      }
+    ).populate("services");
 
     res.status(200).json({
       message: "Doctor updated successfully",
@@ -272,8 +272,6 @@ export const editDoctorById = async (req, res, next) => {
     next(error);
   }
 };
-
-
 
 /* --------------------------- Delete Doctor by ID -------------------------- */
 export const deleteDoctorById = async (req, res, next) => {
@@ -301,8 +299,23 @@ export const deleteDoctorById = async (req, res, next) => {
 
     await Doctor.findByIdAndDelete(doctorId);
 
-    res.status(200).json({ message: "Doctor and related reviews deleted successfully", doctor });
+    res.status(200).json({
+      message: "Doctor and related reviews deleted successfully",
+      doctor,
+    });
   } catch (error) {
     next(error);
+  }
+};
+
+/* --------------------------- Get All Specializations -------------------------- */
+
+export const getAllSpecializations = async (req, res, next) => {
+  try {
+    const specializations = await Doctor.distinct("specialization");
+    res.status(200).json(specializations);
+  } catch (err) {
+    console.error("Error in getAllSpecializations:", err);
+    next(err);
   }
 };

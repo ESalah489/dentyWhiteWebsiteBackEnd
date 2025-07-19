@@ -1004,57 +1004,42 @@ export const cancelAppointment = async (req, res) => {
 /* ---------------------------- Get All Appointments for Admin ---------------------------- */
 
 export const getAllAppointments = async (req, res) => {
-    try {
-        const { status, doctor, date } = req.query;
+  try {
+    const { status, doctor, date } = req.query;
 
-        const query= {};
+    const query = {};
 
-        if(status) query.status = status;
-        if(doctor) query.doctor = doctor;
-        if(date) {
-            const start = new Date(date);
-            start.setHours(0, 0, 0, 0);
-            const end = new Date(date);
-            end.setHours(23, 59, 59, 999);
-            query.date = { $gte: start, $lte: end };
-        }
-        if (req.query.search) {
-            query.$text = { $search: req.query.search };
-        }
-
-        if (req.query.isFirstTime) {
-            query.isFirstTime = req.query.isFirstTime === 'true';
-        }
-
-        const limit= parseInt(req.query.limit) || 10;
-        const page= parseInt(req.query.page) || 1;
-        const skip= (page - 1) * limit; 
-
-        const appointments = await Appointment 
-        .find(query)
-        .populate('doctor', 'name')
-        .populate('service', 'name')
-        .populate('bookedBy', 'firstName email')
-        .sort({ date:1, startTime:1 })
-        .skip(skip)
-        .limit(limit);
-    
-        const totalCount= await Appointment.countDocuments(query);
-
-        res.status(200).json({ 
-            appointments,
-            pagination: {
-                total: totalCount,
-                page,
-                limit,
-                totalPages: Math.ceil(totalCount / limit)
-            } 
-        });
-
-    } catch (error) {
-        res.status(500).json({ message: error.message});
+    if (status) query.status = status;
+    if (doctor) query.doctor = doctor;
+    if (date) {
+      const start = new Date(date);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(date);
+      end.setHours(23, 59, 59, 999);
+      query.date = { $gte: start, $lte: end };
     }
-}
+
+    if (req.query.search) {
+      query.$text = { $search: req.query.search };
+    }
+
+    if (req.query.isFirstTime) {
+      query.isFirstTime = req.query.isFirstTime === 'true';
+    }
+
+    const appointments = await Appointment.find(query)
+      .populate('doctor', 'name')
+      .populate('service', 'name')
+      .populate('bookedBy', 'firstName email')
+      .sort({ date: 1, startTime: 1 });
+
+    res.status(200).json({ appointments });
+
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 
 /* ---------------------------- Allow Online Payment After confirmation ---------------------------- */
 
