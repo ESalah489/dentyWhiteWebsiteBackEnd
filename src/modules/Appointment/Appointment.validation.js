@@ -7,7 +7,7 @@ export const createAppointmentschema = Joi.object({
     startTime: Joi.string().required(),
     endTime: Joi.string().required(),
     paymentMethod: Joi.string().valid('cash', 'online').required(),
-    amount: Joi.number().required(),
+    amount: Joi.number(),
     notes: Joi.string().max(1000).optional(),
 
     patientInfo: Joi.when(Joi.ref('$isAdmin'),{

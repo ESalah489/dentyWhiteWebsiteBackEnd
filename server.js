@@ -12,9 +12,11 @@ import doctorInfo from "./src/modules/Doctor/doctor.route.js";
 import services from "./src/modules/Services/services.route.js";
 import category from "./src/modules/serviceCategory/serviceCategory.route.js";
 import searchRoutes from "./src/modules/Search/search.route.js";
-import cron from "node-cron";
-import { autoCompleteAppointments } from "./src/scheduler/autoCompleteAppointments.js";
-import { sendReminders } from "./src/scheduler/sendReminders.js";
+import searchServices from "./src/modules/Search/search.route.js";
+import cron from 'node-cron';
+import { autoCompleteAppointments } from './src/scheduler/autoCompleteAppointments.js';
+import { sendReminders } from './src/scheduler/sendReminders.js';
+import { autoExpireAppointments } from './src/scheduler/autoExpireAppointments.js';
 import appointmentInfo from "./src/modules/Appointment/Appointment.route.js";
 import paymentRoutes from "./src/modules/Payment/Payment.route.js";
 import { stripeWebhook } from "./src/utils/stripeWebhook.js";
@@ -54,6 +56,11 @@ cron.schedule("*/10 * * * *", () => {
   sendReminders();
 });
 
+
+cron.schedule('*/15 * * * *', () => {
+  console.log('🕒 Running auto-expire appointment task...');
+  autoExpireAppointments();
+});
 /* --------------------------- Connect to MongoDB --------------------------- */
 db_connection();
 /* --------------------------------- Routes --------------------------------- */

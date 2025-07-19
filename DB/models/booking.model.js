@@ -33,7 +33,7 @@ const appointmentSchema = new mongoose.Schema({
 
     status: {
         type: String,
-        enum: ["pending", "confirmed", "completed", "cancelled", "rescheduled"],
+        enum: ["pending", "confirmed", "completed", "cancelled", "rescheduled", 'no-show', 'expired'],
         default: "pending"
     },
     paymentMethod: {
@@ -128,7 +128,16 @@ appointmentSchema.virtual('canCancel').get(function () {
     return now < cancelLimit && this.status === 'confirmed';
 });
 
-appointmentSchema.index({ doctor: 1, startTime: 1 }, { unique: true });
+appointmentSchema.index({ 
+  doctor: 1, 
+  startTime: 1, 
+  status: 1 
+}, { 
+  unique: true,
+  partialFilterExpression: {
+    status: { $nin: ["cancelled", "expired", "no-show"] }
+  }
+});
 
 appointmentSchema.index({
   'patientInfo.firstName': 'text',
