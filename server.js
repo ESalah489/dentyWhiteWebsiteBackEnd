@@ -28,11 +28,18 @@ import * as reviewController from "./src/modules/review/review.controller.js";
 dotenv.config();
 
 const app = express();
+
+app.use((req, res, next) => {
+  res.setHeader("Access-Control-Allow-Origin", "https://denty-white.vercel.app");
+  res.setHeader("Access-Control-Allow-Credentials", "true");
+  next();
+});
+
 app.use(
   cors({
     origin: [
       "http://localhost:5173",
-      "https://denty-white.vercel.app/",
+      "https://denty-white.vercel.app",
     ],
     credentials: true,
   })
