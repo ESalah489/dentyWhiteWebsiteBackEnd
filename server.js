@@ -30,11 +30,13 @@ dotenv.config();
 const app = express();
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: [
+      "http://localhost:5173",
+      "https://denty-white-website-back-end.vercel.app/",
+    ],
     credentials: true,
   })
 );
-
 app.post(
   "/webhook/stripe",
   express.raw({ type: "application/json" }),
