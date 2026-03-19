@@ -32,7 +32,7 @@ app.use(
   cors({
     origin: [
       "http://localhost:5173",
-      "https://denty-white-website-back-end.vercel.app/",
+      "https://denty-white.vercel.app/",
     ],
     credentials: true,
   })
