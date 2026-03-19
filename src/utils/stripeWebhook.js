@@ -1,7 +1,7 @@
   import { buffer } from 'micro';
   import Stripe from 'stripe';
   import config from '../config/index.js';
-  import Payment from '../../DB/models/Payment.model.js';
+  import Payment from '../../DB/models/payment.model.js';
 
   const stripe = new Stripe(config.stripe.secretKey);
 

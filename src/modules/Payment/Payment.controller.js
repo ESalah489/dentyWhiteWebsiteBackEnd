@@ -1,4 +1,4 @@
-import Payment from '../../../DB/models/Payment.model.js';
+import Payment from '../../../DB/models/payment.model.js';
 import Appointment from '../../../DB/models/booking.model.js'
 import { createSession, getSession } from '../../utils/stripe.js';
 import { createPaymentToken, getPaymentUrl, verifyPayment as verifyPaymob } from '../../utils/paymob.js';
